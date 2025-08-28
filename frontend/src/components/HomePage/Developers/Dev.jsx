@@ -120,7 +120,7 @@ const DevSection = () => {
     },
     {
       id: 5,
-      name: "Udaya Krishnan",
+      name: "Udaya Krishna",
       title: "Full-Stack Developer",
       subtitle: "Integration Expert",
       specialization: "API Development & System Integration",
@@ -132,8 +132,8 @@ const DevSection = () => {
       projects: "12+",
       icon: Zap,
       socialLinks: [
-        { type: 'github', url: 'https://github.com/udaya-krishnan', icon: Github },
-        { type: 'linkedin', url: 'https://linkedin.com/in/udaya-krishnan', icon: Linkedin },
+        { type: 'github', url: 'https://github.com/Udaya-Krishna', icon: Github },
+        { type: 'linkedin', url: 'https://www.linkedin.com/in/udaya-krishna-21aug/', icon: Linkedin },
         { type: 'email', url: 'mailto:udaya.krishnan@revenueguard.ai', icon: Mail }
       ]
     }
@@ -356,5 +356,6 @@ const DevSection = () => {
     </section>
   );
 };
+
 
 export default DevSection;
