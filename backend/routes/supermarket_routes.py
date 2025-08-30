@@ -14,7 +14,7 @@ supermarket_bp = Blueprint('supermarket', __name__)
 try:
     predictor = SupermarketPredictor()
 except Exception as e:
-    print(f"❌ Failed to initialize supermarket predictor: {e}")
+    print(f"Failed to initialize supermarket predictor: {e}")
     predictor = None
 
 @supermarket_bp.route('/predict', methods=['POST'])
@@ -37,28 +37,37 @@ def predict():
         if not allowed_file(file.filename):
             return jsonify({"error": "Invalid file type. Only CSV and Excel files are allowed"}), 400
         
-        # Save uploaded file
+        # Save uploaded file to uploads directory
         uploaded_filepath, filename = save_uploaded_file(file, "supermarket")
+        print(f"File saved to: {uploaded_filepath}")
         
-        # Load dataframe
+        # Load the uploaded file into a DataFrame
         input_df = load_dataframe(uploaded_filepath)
+        print(f"Loaded DataFrame with shape: {input_df.shape}")
+        print(f"DataFrame columns: {list(input_df.columns)}")
         
         # Get input data summary
         input_summary = get_data_summary(input_df)
         
-        # Make predictions
+        # Make predictions using the SupermarketPredictor
+        print("Starting prediction process...")
         predictions_df = predictor.predict(input_df)
+        print(f"Predictions completed. Result shape: {predictions_df.shape}")
         
         # Get prediction summary
         prediction_summary = get_prediction_summary(predictions_df, "supermarket")
         
-        # Generate visualizations
-        visualizations = generate_visualization_data(predictions_df, "supermarket")
+        # Generate visualizations (if you have this utility)
+        try:
+            visualizations = generate_visualization_data(predictions_df, "supermarket")
+        except Exception as viz_error:
+            print(f"Visualization generation failed: {viz_error}")
+            visualizations = {}
         
-        # Separate outputs
+        # Separate outputs using the predictor's method
         separated_outputs = predictor.separate_outputs(predictions_df)
         
-        # Save output files
+        # Save output files to outputs directory
         session_id = str(uuid.uuid4())
         output_files = {}
         
@@ -71,10 +80,12 @@ def predict():
                     "path": output_path,
                     "count": len(df)
                 }
+                print(f"Saved {output_type}: {len(df)} records to {output_filename}")
         
         # Cleanup uploaded file
         cleanup_file(uploaded_filepath)
         
+        # Prepare response
         response = {
             "success": True,
             "session_id": session_id,
@@ -85,6 +96,7 @@ def predict():
             "message": f"Successfully processed {len(predictions_df)} records"
         }
         
+        print(f"Request completed successfully. Processed {len(predictions_df)} records.")
         return jsonify(response)
     
     except Exception as e:
@@ -92,8 +104,13 @@ def predict():
         if uploaded_filepath:
             cleanup_file(uploaded_filepath)
         
+        error_message = f"Prediction failed: {str(e)}"
+        print(f"Error occurred: {error_message}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        
         return jsonify({
-            "error": f"Prediction failed: {str(e)}",
+            "error": error_message,
             "success": False
         }), 500
 
@@ -183,3 +200,40 @@ def generate_report(session_id):
     
     except Exception as e:
         return jsonify({"error": f"Report generation failed: {str(e)}"}), 500
+
+# Test route to verify the predictor works
+@supermarket_bp.route('/test', methods=['GET'])
+def test_predictor():
+    """Test route to verify predictor is working"""
+    try:
+        if predictor is None:
+            return jsonify({"error": "Predictor not initialized"}), 500
+        
+        # Try to load a sample file from your dataset directory
+        sample_file = Path(r"AI_Revenue_Leakage_Detection\model\super_market\dataset\input_dataset_cleaned.csv")
+        
+        if sample_file.exists():
+            df = pd.read_csv(sample_file)
+            sample_df = df.head(10)  # Test with first 10 rows
+            
+            results = predictor.predict(sample_df)
+            separated = predictor.separate_outputs(results)
+            
+            return jsonify({
+                "success": True,
+                "message": "Predictor test successful",
+                "test_records": len(results),
+                "anomalies_found": len(separated["anomalies"]),
+                "clean_records": len(separated["no_leakage"])
+            })
+        else:
+            return jsonify({
+                "success": True,
+                "message": "Predictor initialized successfully (no test data available)"
+            })
+    
+    except Exception as e:
+        return jsonify({
+            "error": f"Test failed: {str(e)}",
+            "success": False
+        }), 500
