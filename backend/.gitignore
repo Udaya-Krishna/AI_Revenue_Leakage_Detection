@@ -12,3 +12,8 @@ build/
 
 # Env files
 .env
+
+
+# Ignore uploads and output inside backend
+backend/uploads/
+backend/output/

@@ -28,3 +28,7 @@ node_modules/
 venv/
 venv/
 backend/venv/
+
+# Ignore uploads and output inside backend
+backend/uploads/
+backend/output/

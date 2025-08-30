@@ -1,68 +1,81 @@
 import os
-from pathlib import Path
+from datetime import timedelta
 
 class Config:
-    # Get current working directory
-    CURRENT_DIR = Path.cwd()
+    # Basic Flask Configuration
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'hackathon-ai-revenue-leakage-2024'
+    DEBUG = True
     
-    # Find the AI_Revenue_Leakage_Detection directory
-    BASE_DIR = None
+    # File Upload Configuration
+    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+    OUTPUT_FOLDER = os.path.join(os.getcwd(), 'outputs')
+    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB max file size
     
-    # Check if we're already in the project directory
-    if CURRENT_DIR.name == 'AI_Revenue_Leakage_Detection':
-        BASE_DIR = CURRENT_DIR
-    elif CURRENT_DIR.parent.name == 'AI_Revenue_Leakage_Detection':
-        BASE_DIR = CURRENT_DIR.parent
-    else:
-        # Search for the project root in the path
-        current_path = CURRENT_DIR
-        for _ in range(5):
-            if (current_path / 'model').exists() and (current_path / 'backend').exists():
-                BASE_DIR = current_path
-                break
-            current_path = current_path.parent
-    
-    # Fallback to current directory if not found
-    if BASE_DIR is None:
-        BASE_DIR = CURRENT_DIR
-        # If we're in backend, go up one level
-        if BASE_DIR.name == 'backend':
-            BASE_DIR = BASE_DIR.parent
-    
-    # Backend directory
-    BACKEND_DIR = BASE_DIR / "backend"
-    
-    # Upload and output directories - directly in backend
-    UPLOAD_DIR = BACKEND_DIR / "uploads" 
-    OUTPUT_DIR = BACKEND_DIR / "outputs"
-    
-    # Model directories
-    SUPERMARKET_MODEL_DIR = BASE_DIR / "model" / "super_market" / "saved_models"
-    TELECOM_MODEL_DIR = BASE_DIR / "model" / "telecom" / "saved_model"
-    
-    # Dataset directories
-    SUPERMARKET_DATASET_DIR = BASE_DIR / "model" / "super_market" / "dataset"
-    TELECOM_DATASET_DIR = BASE_DIR / "model" / "telecom" / "dataset"
-    
-    # File upload settings
-    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB
+    # Allowed file extensions
     ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'xls'}
     
-    def __init__(self):
-        # Create directories if they don't exist
-        try:
-            os.makedirs(self.UPLOAD_DIR, exist_ok=True)
-            os.makedirs(self.OUTPUT_DIR, exist_ok=True)
-            
-            print(f"Base directory: {self.BASE_DIR}")
-            print(f"Upload directory: {self.UPLOAD_DIR}")
-            print(f"Output directory: {self.OUTPUT_DIR}")
-            print(f"Supermarket models directory: {self.SUPERMARKET_MODEL_DIR}")
-            
-        except Exception as e:
-            print(f"Error creating directories: {e}")
-            print(f"Current working directory: {Path.cwd()}")
-            print(f"Resolved BASE_DIR: {self.BASE_DIR}")
+    # Session Configuration
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
+    
+    # Model Paths - FIXED TO GO UP ONE LEVEL FROM BACKEND
+    SUPERMARKET_MODEL_PATH = os.path.join(os.path.dirname(os.getcwd()), 'model', 'super_market', 'saved_models')
+    TELECOM_MODEL_PATH = os.path.join(os.path.dirname(os.getcwd()), 'model', 'telecom', 'saved_models')
+    
+    # CORS Configuration
+    CORS_ORIGINS = [
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:3000'
+    ]
+    
+    # API Configuration
+    API_VERSION = 'v1'
+    API_TITLE = 'AI Revenue Leakage Detection API'
+    
+    @staticmethod
+    def init_app(app):
+        """Initialize app with configuration"""
+        # Create directories
+        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+        os.makedirs(Config.OUTPUT_FOLDER, exist_ok=True)
+        
+        # Set app config
+        app.config['UPLOAD_FOLDER'] = Config.UPLOAD_FOLDER
+        app.config['OUTPUT_FOLDER'] = Config.OUTPUT_FOLDER
 
-# Create global config instance
-config = Config()
+class DevelopmentConfig(Config):
+    DEBUG = True
+    ENV = 'development'
+
+class ProductionConfig(Config):
+    DEBUG = False
+    ENV = 'production'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    
+    # More restrictive settings for production
+    MAX_CONTENT_LENGTH = 25 * 1024 * 1024  # 25MB for production
+    
+    @staticmethod
+    def init_app(app):
+        Config.init_app(app)
+        
+        # Production specific initialization
+        import logging
+        from logging.handlers import RotatingFileHandler
+        
+        if not app.debug:
+            file_handler = RotatingFileHandler('logs/app.log', maxBytes=10240, backupCount=10)
+            file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+            ))
+            file_handler.setLevel(logging.INFO)
+            app.logger.addHandler(file_handler)
+            app.logger.setLevel(logging.INFO)
+            app.logger.info('AI Revenue Leakage Detection startup')
+
+config = {
+    'development': DevelopmentConfig,
+    'production': ProductionConfig,
+    'default': DevelopmentConfig
+}
