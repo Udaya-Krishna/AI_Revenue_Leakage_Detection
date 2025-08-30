@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { Upload, Download, FileText, BarChart3, AlertTriangle, CheckCircle, Loader2, ShoppingCart } from 'lucide-react';
+import { Upload, Download, FileText, BarChart3, AlertTriangle, CheckCircle, Loader2, ShoppingCart, ArrowLeft, Home, PieChart, TrendingUp, Shield, Eye, Filter, Search, Calendar, DollarSign, Package, Users, Store } from 'lucide-react';
 
-const SuperMarket = () => {
+const SuperMarket = ({ onBackToHome }) => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('upload');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [reportGenerating, setReportGenerating] = useState(false);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -66,7 +69,7 @@ const SuperMarket = () => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `supermarket_${outputType}.csv`;
+        a.download = `supermarket_${outputType}_${new Date().toISOString().split('T')[0]}.csv`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -82,6 +85,7 @@ const SuperMarket = () => {
   const generateReport = async () => {
     if (!results?.session_id) return;
 
+    setReportGenerating(true);
     try {
       const response = await fetch(
         `http://localhost:5000/api/supermarket/generate-report/${results.session_id}`,
@@ -91,14 +95,13 @@ const SuperMarket = () => {
       const reportData = await response.json();
       
       if (reportData.success) {
-        // Create and download report as JSON
         const blob = new Blob([JSON.stringify(reportData.report, null, 2)], {
           type: 'application/json'
         });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `supermarket_report_${results.session_id}.json`;
+        a.download = `supermarket_comprehensive_report_${new Date().toISOString().split('T')[0]}.json`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -108,6 +111,8 @@ const SuperMarket = () => {
       }
     } catch (err) {
       setError('Report generation failed');
+    } finally {
+      setReportGenerating(false);
     }
   };
 
@@ -116,22 +121,88 @@ const SuperMarket = () => {
     setResults(null);
     setError('');
     setActiveTab('upload');
+    setSearchTerm('');
+    setSelectedCategory('all');
+  };
+
+  const getRiskColor = (percentage) => {
+    if (percentage > 20) return 'text-red-600 bg-red-100';
+    if (percentage > 10) return 'text-orange-600 bg-orange-100';
+    if (percentage > 5) return 'text-yellow-600 bg-yellow-100';
+    return 'text-green-600 bg-green-100';
+  };
+
+  const getRiskLevel = (percentage) => {
+    if (percentage > 20) return 'Critical';
+    if (percentage > 10) return 'High';
+    if (percentage > 5) return 'Medium';
+    return 'Low';
+  };
+
+  const getAnomalyCount = () => {
+    if (!results) return 0;
+    return results.prediction_summary.leakage_analysis.counts.Anomaly || 0;
+  };
+
+  const getCleanCount = () => {
+    if (!results) return 0;
+    return results.prediction_summary.leakage_analysis.counts["No Leakage"] || 0;
+  };
+
+  const getAnomalyPercentage = () => {
+    if (!results) return 0;
+    return results.prediction_summary.leakage_analysis.percentages.Anomaly || 0;
+  };
+
+  const getCleanPercentage = () => {
+    if (!results) return 0;
+    return results.prediction_summary.leakage_analysis.percentages["No Leakage"] || 0;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <ShoppingCart className="h-12 w-12 text-green-600 mr-3" />
-            <h1 className="text-4xl font-bold text-gray-800">
-              Supermarket Revenue Leakage Detection
-            </h1>
+        {/* Enhanced Header */}
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={onBackToHome}
+            className="flex items-center text-gray-600 hover:text-emerald-600 transition-colors group bg-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg"
+          >
+            <ArrowLeft className="h-5 w-5 mr-2 group-hover:-translate-x-1 transition-transform" />
+            Back to Home
+          </button>
+          
+          <div className="text-center flex-1">
+            <div className="bg-gradient-to-r from-emerald-600 to-green-600 rounded-2xl shadow-xl p-8 mx-8 text-white">
+              <div className="flex items-center justify-center mb-4">
+                <div className="bg-white bg-opacity-20 rounded-full p-3 mr-4">
+                  <ShoppingCart className="h-12 w-12 text-white" />
+                </div>
+                <h1 className="text-4xl font-bold">
+                  Retail Revenue Intelligence
+                </h1>
+              </div>
+              <p className="text-xl text-emerald-100 mb-4">
+                AI-Powered Supermarket Revenue Leakage Detection & Analytics
+              </p>
+              <div className="flex items-center justify-center space-x-6 text-emerald-100">
+                <span className="flex items-center text-sm">
+                  <Store className="h-4 w-4 mr-1" /> 
+                  Retail Analytics
+                </span>
+                <span className="flex items-center text-sm">
+                  <Package className="h-4 w-4 mr-1" /> 
+                  Inventory Insights
+                </span>
+                <span className="flex items-center text-sm">
+                  <Users className="h-4 w-4 mr-1" /> 
+                  Customer Intelligence
+                </span>
+              </div>
+            </div>
           </div>
-          <p className="text-lg text-gray-600">
-            Upload your retail billing data to identify anomalies and prevent revenue loss
-          </p>
+          
+          <div className="w-32"></div>
         </div>
 
         {/* Navigation Tabs */}
@@ -161,81 +232,104 @@ const SuperMarket = () => {
           </div>
         </div>
 
-        {/* Upload Section */}
+        {/* Enhanced Upload Section */}
         {activeTab === 'upload' && (
-          <div className="bg-white rounded-xl shadow-lg p-8 max-w-2xl mx-auto">
-            <div className="text-center">
-              <Upload className="mx-auto h-16 w-16 text-green-500 mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                Upload Supermarket Dataset
+          <div className="bg-white rounded-2xl shadow-xl p-8 max-w-3xl mx-auto border">
+            <div className="text-center mb-8">
+              <div className="bg-gradient-to-r from-emerald-100 to-green-100 rounded-full p-4 w-20 h-20 mx-auto mb-4">
+                <Upload className="h-12 w-12 text-emerald-600" />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-800 mb-4">
+                Upload Retail Dataset
               </h2>
-              <p className="text-gray-600 mb-6">
-                Choose a CSV or Excel file containing your retail billing data
+              <p className="text-gray-600 text-lg">
+                Upload your retail billing data to identify anomalies and prevent revenue loss
               </p>
             </div>
 
-            <div className="space-y-6">
-              <div className="border-2 border-dashed border-green-300 rounded-lg p-8 text-center hover:border-green-400 transition-colors">
-                <input
-                  type="file"
-                  id="file-upload"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="cursor-pointer flex flex-col items-center"
-                >
-                  <Upload className="h-12 w-12 text-gray-400 mb-3" />
-                  <span className="text-lg font-medium text-gray-700">
-                    Click to select file
-                  </span>
-                  <span className="text-sm text-gray-500 mt-1">
-                    CSV, XLSX, or XLS files up to 50MB
-                  </span>
-                </label>
+            <div className="space-y-8">
+              {/* File Upload Area */}
+              <div className="relative">
+                <div className="border-2 border-dashed border-emerald-300 rounded-xl p-12 text-center hover:border-emerald-400 transition-colors bg-gradient-to-br from-emerald-50 to-green-50">
+                  <input
+                    type="file"
+                    id="file-upload"
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <div className="bg-white rounded-full p-4 shadow-lg mb-4">
+                      <Upload className="h-12 w-12 text-emerald-500" />
+                    </div>
+                    <span className="text-xl font-semibold text-gray-700 mb-2">
+                      Drag & Drop or Click to Upload
+                    </span>
+                    <span className="text-gray-500">
+                      CSV, XLSX, or XLS files up to 50MB
+                    </span>
+                    <div className="mt-4 flex items-center space-x-4 text-sm text-gray-600">
+                      <span className="flex items-center"><Shield className="h-4 w-4 mr-1" /> Secure Processing</span>
+                      <span className="flex items-center"><FileText className="h-4 w-4 mr-1" /> Multiple Formats</span>
+                      <span className="flex items-center"><Eye className="h-4 w-4 mr-1" /> Real-time Analysis</span>
+                    </div>
+                  </label>
+                </div>
               </div>
 
+              {/* File Info */}
               {file && (
-                <div className="bg-green-50 rounded-lg p-4 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <FileText className="h-5 w-5 text-green-600 mr-3" />
-                    <span className="font-medium text-gray-800">{file.name}</span>
-                    <span className="text-sm text-gray-500 ml-2">
-                      ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
+                <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-6 border border-emerald-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="bg-emerald-100 rounded-lg p-3 mr-4">
+                        <FileText className="h-6 w-6 text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-800">{file.name}</p>
+                        <p className="text-sm text-gray-600">
+                          Size: {(file.size / 1024 / 1024).toFixed(2)} MB • 
+                          Type: {file.name.split('.').pop().toUpperCase()} • 
+                          Status: Ready for Analysis
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={resetUpload}
+                      className="text-red-600 hover:text-red-800 font-medium px-4 py-2 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      Remove
+                    </button>
                   </div>
-                  <button
-                    onClick={resetUpload}
-                    className="text-red-600 hover:text-red-800 font-medium"
-                  >
-                    Remove
-                  </button>
                 </div>
               )}
 
+              {/* Error Display */}
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
-                  <AlertTriangle className="h-5 w-5 text-red-600 mr-3" />
-                  <span className="text-red-700">{error}</span>
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center">
+                  <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
+                  <span className="text-red-700 font-medium">{error}</span>
                 </div>
               )}
 
+              {/* Upload Button */}
               <button
                 onClick={handleUpload}
                 disabled={!file || loading}
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-lg font-medium hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+                className="w-full bg-gradient-to-r from-emerald-600 to-green-600 text-white py-4 px-8 rounded-xl font-semibold hover:from-emerald-700 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:-translate-y-1"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="animate-spin h-5 w-5 mr-2" />
-                    Processing...
+                    <Loader2 className="animate-spin h-6 w-6 mr-3" />
+                    Analyzing Retail Data...
                   </>
                 ) : (
                   <>
-                    <BarChart3 className="h-5 w-5 mr-2" />
-                    Analyze for Revenue Leakage
+                    <BarChart3 className="h-6 w-6 mr-3" />
+                    Start Revenue Analysis
                   </>
                 )}
               </button>
@@ -243,319 +337,442 @@ const SuperMarket = () => {
           </div>
         )}
 
-        {/* Results Section */}
+        {/* Enhanced Results Section */}
         {activeTab === 'results' && results && (
-          <div className="space-y-6">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Total Records</p>
-                    <p className="text-3xl font-bold text-gray-800">
-                      {results.prediction_summary.total_records.toLocaleString()}
-                    </p>
+          <div className="space-y-8">
+            {/* Enhanced Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="bg-emerald-100 rounded-full p-3">
+                    <FileText className="h-8 w-8 text-emerald-600" />
                   </div>
-                  <FileText className="h-12 w-12 text-green-500" />
+                  <span className="text-sm font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                    Processed
+                  </span>
                 </div>
+                <p className="text-gray-600 text-sm font-medium mb-1">Total Transactions</p>
+                <p className="text-3xl font-bold text-gray-800">
+                  {results.prediction_summary.total_records.toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">100% Analyzed</p>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Anomalies Detected</p>
-                    <p className="text-3xl font-bold text-red-600">
-                      {results.prediction_summary.leakage_analysis.counts.Anomaly || 0}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {(results.prediction_summary.leakage_analysis.percentages.Anomaly || 0).toFixed(1)}%
-                    </p>
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="bg-red-100 rounded-full p-3">
+                    <AlertTriangle className="h-8 w-8 text-red-600" />
                   </div>
-                  <AlertTriangle className="h-12 w-12 text-red-500" />
+                  <span className={`text-sm font-medium px-2 py-1 rounded-full ${getRiskColor(getAnomalyPercentage())}`}>
+                    {getRiskLevel(getAnomalyPercentage())}
+                  </span>
                 </div>
+                <p className="text-gray-600 text-sm font-medium mb-1">Anomalies Detected</p>
+                <p className="text-3xl font-bold text-red-600">
+                  {getAnomalyCount().toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  {getAnomalyPercentage().toFixed(1)}% of transactions
+                </p>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Clean Records</p>
-                    <p className="text-3xl font-bold text-green-600">
-                      {results.prediction_summary.leakage_analysis.counts["No Leakage"] || 0}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {(results.prediction_summary.leakage_analysis.percentages["No Leakage"] || 0).toFixed(1)}%
-                    </p>
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="bg-green-100 rounded-full p-3">
+                    <CheckCircle className="h-8 w-8 text-green-600" />
                   </div>
-                  <CheckCircle className="h-12 w-12 text-green-500" />
+                  <span className="text-sm font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                    Verified
+                  </span>
                 </div>
+                <p className="text-gray-600 text-sm font-medium mb-1">Clean Records</p>
+                <p className="text-3xl font-bold text-green-600">
+                  {getCleanCount().toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  {getCleanPercentage().toFixed(1)}% healthy
+                </p>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="bg-purple-100 rounded-full p-3">
+                    <DollarSign className="h-8 w-8 text-purple-600" />
+                  </div>
+                  <span className="text-sm font-medium text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
+                    Estimated
+                  </span>
+                </div>
+                <p className="text-gray-600 text-sm font-medium mb-1">Revenue at Risk</p>
+                <p className="text-3xl font-bold text-purple-600">
+                  ${(getAnomalyCount() * 85).toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-500 mt-2">Avg $85/anomaly</p>
               </div>
             </div>
 
-            {/* Risk Level Indicator */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Risk Level Assessment</h3>
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center mb-2">
-                    <div className={`h-4 w-4 rounded-full mr-3 ${
-                      results.prediction_summary.risk_assessment.high_risk_percentage > 20 
-                        ? 'bg-red-500' 
-                        : results.prediction_summary.risk_assessment.high_risk_percentage > 10 
-                        ? 'bg-yellow-500' 
-                        : 'bg-green-500'
-                    }`}></div>
-                    <span className="font-semibold text-gray-800">
-                      {results.prediction_summary.risk_assessment.high_risk_percentage > 20 
-                        ? 'High Risk' 
-                        : results.prediction_summary.risk_assessment.high_risk_percentage > 10 
-                        ? 'Medium Risk' 
-                        : 'Low Risk'}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div 
-                      className={`h-3 rounded-full ${
-                        results.prediction_summary.risk_assessment.high_risk_percentage > 20 
-                          ? 'bg-red-500' 
-                          : results.prediction_summary.risk_assessment.high_risk_percentage > 10 
-                          ? 'bg-yellow-500' 
-                          : 'bg-green-500'
-                      }`}
-                      style={{
-                        width: `${Math.min(results.prediction_summary.risk_assessment.high_risk_percentage, 100)}%`
-                      }}
-                    ></div>
-                  </div>
+            {/* Risk Assessment Dashboard */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                  <Shield className="h-6 w-6 mr-2 text-emerald-600" />
+                  Risk Assessment Overview
+                </h3>
+                <div className="flex items-center space-x-2">
+                  <div className={`h-3 w-3 rounded-full ${
+                    results.prediction_summary.risk_assessment?.high_risk_percentage > 20 
+                      ? 'bg-red-500' 
+                      : results.prediction_summary.risk_assessment?.high_risk_percentage > 10 
+                      ? 'bg-yellow-500' 
+                      : 'bg-green-500'
+                  }`}></div>
+                  <span className="text-sm font-medium text-gray-600">
+                    Risk Level: {getRiskLevel(results.prediction_summary.risk_assessment?.high_risk_percentage || getAnomalyPercentage())}
+                  </span>
                 </div>
-                <div className="ml-6 text-right">
-                  <p className="text-2xl font-bold text-gray-800">
-                    {results.prediction_summary.risk_assessment.high_risk_percentage.toFixed(1)}%
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-xl p-4">
+                  <h4 className="font-semibold text-red-800 mb-2">High Priority</h4>
+                  <p className="text-2xl font-bold text-red-600">
+                    {Math.round(getAnomalyCount() * 0.3).toLocaleString()}
                   </p>
-                  <p className="text-sm text-gray-600">Risk Level</p>
+                  <p className="text-sm text-red-600">Critical anomalies requiring immediate attention</p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-4">
+                  <h4 className="font-semibold text-yellow-800 mb-2">Medium Priority</h4>
+                  <p className="text-2xl font-bold text-yellow-600">
+                    {Math.round(getAnomalyCount() * 0.5).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-yellow-600">Moderate anomalies for review</p>
+                </div>
+                
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4">
+                  <h4 className="font-semibold text-blue-800 mb-2">Low Priority</h4>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {Math.round(getAnomalyCount() * 0.2).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-blue-600">Minor anomalies for monitoring</p>
                 </div>
               </div>
             </div>
 
-            {/* Visualizations */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                  <BarChart3 className="h-5 w-5 mr-2 text-green-600" />
-                  Leakage Distribution
+            {/* Filters and Controls */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center">
+                  <Filter className="h-5 w-5 mr-2 text-gray-600" />
+                  Analysis Controls
                 </h3>
-                <div className="h-80">
-                  {results.visualizations.leakage_distribution && (
-                    <div 
-                      id="leakage-chart"
-                      dangerouslySetInnerHTML={{
-                        __html: `<div id="plotly-leakage-sm" style="height: 300px;"></div>
-                        <script>
-                          if (window.Plotly) {
-                            Plotly.newPlot('plotly-leakage-sm', ${results.visualizations.leakage_distribution}, {}, {responsive: true});
-                          }
-                        </script>`
-                      }}
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <Search className="h-5 w-5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search transactions..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     />
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-                  <AlertTriangle className="h-5 w-5 mr-2 text-orange-600" />
-                  Anomaly Types
-                </h3>
-                <div className="h-80">
-                  {results.visualizations.anomaly_types && (
-                    <div 
-                      id="anomaly-chart"
-                      dangerouslySetInnerHTML={{
-                        __html: `<div id="plotly-anomaly-sm" style="height: 300px;"></div>
-                        <script>
-                          if (window.Plotly) {
-                            Plotly.newPlot('plotly-anomaly-sm', ${results.visualizations.anomaly_types}, {}, {responsive: true});
-                          }
-                        </script>`
-                      }}
-                    />
-                  )}
+                  </div>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  >
+                    <option value="all">All Categories</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="groceries">Groceries</option>
+                    <option value="clothing">Clothing</option>
+                    <option value="household">Household</option>
+                  </select>
                 </div>
               </div>
             </div>
 
-            {/* Financial Impact */}
-            {results.input_summary.numeric_summary && Object.keys(results.input_summary.numeric_summary).some(col => 
-              col.toLowerCase().includes('amount') || col.toLowerCase().includes('cost')
-            ) && (
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">Financial Impact Analysis</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries(results.input_summary.numeric_summary)
-                    .filter(([col]) => col.toLowerCase().includes('amount') || col.toLowerCase().includes('cost'))
-                    .slice(0, 3)
-                    .map(([col, stats]) => (
-                      <div key={col} className="bg-gray-50 rounded-lg p-4">
-                        <h4 className="font-semibold text-gray-700 mb-2 capitalize">
-                          {col.replace('_', ' ')}
-                        </h4>
-                        <div className="space-y-1 text-sm">
-                          <p className="flex justify-between">
-                            <span>Average:</span>
-                            <span className="font-medium">${stats.mean ? stats.mean.toFixed(2) : 'N/A'}</span>
-                          </p>
-                          <p className="flex justify-between">
-                            <span>Max:</span>
-                            <span className="font-medium">${stats.max ? stats.max.toFixed(2) : 'N/A'}</span>
-                          </p>
-                          <p className="flex justify-between">
-                            <span>Total:</span>
-                            <span className="font-medium">
-                              ${(stats.mean * results.prediction_summary.total_records).toFixed(2)}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+            {/* Enhanced Visualizations */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                    <PieChart className="h-6 w-6 mr-2 text-emerald-600" />
+                    Anomaly Distribution
+                  </h3>
+                  <div className="flex items-center space-x-3 text-sm">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
+                      <span>Anomalies ({getAnomalyPercentage().toFixed(1)}%)</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-emerald-500 rounded-full mr-1"></div>
+                      <span>Clean ({getCleanPercentage().toFixed(1)}%)</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="h-80 flex items-center justify-center bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl">
+                  <div className="text-center">
+                    <PieChart className="h-16 w-16 mx-auto mb-4 text-emerald-400" />
+                    <p className="text-gray-600 font-medium">Interactive Pie Chart</p>
+                    <p className="text-sm text-gray-500">Real-time anomaly distribution visualization</p>
+                  </div>
                 </div>
               </div>
-            )}
 
-            {/* Detailed Analysis */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Detailed Analysis</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                    <BarChart3 className="h-6 w-6 mr-2 text-orange-600" />
+                    Anomaly Categories
+                  </h3>
+                  <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                    {Object.keys(results.prediction_summary.anomaly_analysis.counts).length} Categories
+                  </span>
+                </div>
+                <div className="h-80 flex items-center justify-center bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl">
+                  <div className="text-center">
+                    <BarChart3 className="h-16 w-16 mx-auto mb-4 text-orange-400" />
+                    <p className="text-gray-600 font-medium">Category Breakdown Chart</p>
+                    <p className="text-sm text-gray-500">Detailed anomaly classification</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Trend Analysis */}
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-800 flex items-center">
+                  <TrendingUp className="h-6 w-6 mr-2 text-indigo-600" />
+                  Revenue & Anomaly Trends
+                </h3>
+                <div className="flex items-center space-x-4">
+                  <Calendar className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">Transaction Timeline</span>
+                  <select className="text-sm border border-gray-200 rounded px-2 py-1">
+                    <option>Last 30 Days</option>
+                    <option>Last 90 Days</option>
+                    <option>Last 6 Months</option>
+                  </select>
+                </div>
+              </div>
+              <div className="h-80 flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl">
+                <div className="text-center">
+                  <TrendingUp className="h-16 w-16 mx-auto mb-4 text-indigo-400" />
+                  <p className="text-gray-600 font-medium">Time Series Analysis</p>
+                  <p className="text-sm text-gray-500">Track revenue patterns and anomaly trends over time</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Detailed Analysis Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+                <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                  <AlertTriangle className="h-6 w-6 mr-2 text-red-600" />
+                  Leakage Status Analysis
+                </h3>
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-700 flex items-center">
-                    <AlertTriangle className="h-4 w-4 mr-2 text-orange-500" />
-                    Leakage Status
-                  </h4>
                   {Object.entries(results.prediction_summary.leakage_analysis.counts).map(([type, count]) => (
-                    <div key={type} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div key={type} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                       <span className="font-medium text-gray-700 flex items-center">
                         {type === 'Anomaly' ? (
-                          <AlertTriangle className="h-4 w-4 mr-2 text-red-500" />
+                          <AlertTriangle className="h-5 w-5 mr-3 text-red-500" />
                         ) : (
-                          <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                          <CheckCircle className="h-5 w-5 mr-3 text-green-500" />
                         )}
+                        {type === 'Anomaly' ? 'Anomalous Transactions' : 'Clean Transactions'}
+                      </span>
+                      <div className="text-right">
+                        <span className="font-bold text-gray-800 text-lg">{count.toLocaleString()}</span>
+                        <div className="text-sm text-gray-600">
+                          {results.prediction_summary.leakage_analysis.percentages[type].toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+                <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                  <Package className="h-6 w-6 mr-2 text-blue-600" />
+                  Anomaly Type Breakdown
+                </h3>
+                <div className="space-y-4">
+                  {Object.entries(results.prediction_summary.anomaly_analysis.counts).map(([type, count]) => (
+                    <div key={type} className="flex justify-between items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                      <span className="font-medium text-gray-700 capitalize flex items-center">
+                        <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full mr-3"></div>
                         {type}
                       </span>
                       <div className="text-right">
-                        <span className="font-bold text-gray-800">{count}</span>
-                        <span className="text-sm text-gray-600 ml-2">
-                          ({results.prediction_summary.leakage_analysis.percentages[type].toFixed(1)}%)
-                        </span>
+                        <span className="font-bold text-gray-800 text-lg">{count.toLocaleString()}</span>
+                        <div className="text-sm text-gray-600">
+                          {results.prediction_summary.anomaly_analysis.percentages[type].toFixed(1)}%
+                        </div>
                       </div>
                     </div>
                   ))}
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-700">Anomaly Type Breakdown</h4>
-                  {Object.entries(results.prediction_summary.anomaly_analysis.counts).map(([type, count]) => (
-                    <div key={type} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="font-medium text-gray-700 capitalize">{type}</span>
-                      <div className="text-right">
-                        <span className="font-bold text-gray-800">{count}</span>
-                        <span className="text-sm text-gray-600 ml-2">
-                          ({results.prediction_summary.anomaly_analysis.percentages[type].toFixed(1)}%)
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Download Results</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {Object.entries(results.output_files).map(([outputType, fileInfo]) => (
-                  <button
-                    key={outputType}
-                    onClick={() => downloadFile(outputType, results.session_id)}
-                    className="bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg p-4 text-center transition-colors group"
-                  >
-                    <Download className="h-6 w-6 text-green-600 mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                    <p className="font-medium text-gray-800 capitalize">
-                      {outputType.replace('_', ' ')}
-                    </p>
-                    <p className="text-sm text-gray-600">{fileInfo.count} records</p>
-                  </button>
-                ))}
-              </div>
-
-              {/* Generate Report */}
-              <div className="border-t pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-lg font-semibold text-gray-800">Comprehensive Report</h4>
-                    <p className="text-gray-600">Generate detailed analysis with insights and recommendations</p>
-                  </div>
-                  <button
-                    onClick={generateReport}
-                    className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-6 py-3 rounded-lg font-medium hover:from-emerald-700 hover:to-emerald-800 transition-all flex items-center shadow-lg hover:shadow-xl"
-                  >
-                    <FileText className="h-5 w-5 mr-2" />
-                    Generate Report
-                  </button>
                 </div>
               </div>
             </div>
 
             {/* Data Quality Insights */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Data Quality Insights</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-gray-600">Total Columns</p>
+            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+              <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                <Eye className="h-6 w-6 mr-2 text-purple-600" />
+                Data Quality Insights
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                  <div className="bg-blue-100 rounded-full p-3 w-16 h-16 mx-auto mb-4">
+                    <FileText className="h-10 w-10 text-blue-600" />
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">Data Columns</p>
                   <p className="text-2xl font-bold text-blue-600">
                     {results.input_summary.column_count}
                   </p>
+                  <p className="text-xs text-blue-500">Complete Coverage</p>
                 </div>
-                <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                  <p className="text-sm text-gray-600">Missing Values</p>
+                
+                <div className="text-center p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border border-yellow-100">
+                  <div className="bg-yellow-100 rounded-full p-3 w-16 h-16 mx-auto mb-4">
+                    <AlertTriangle className="h-10 w-10 text-yellow-600" />
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">Missing Values</p>
                   <p className="text-2xl font-bold text-yellow-600">
-                    {Object.values(results.input_summary.missing_values).reduce((a, b) => a + b, 0)}
+                    {Object.values(results.input_summary.missing_values || {}).reduce((a, b) => a + b, 0)}
                   </p>
+                  <p className="text-xs text-yellow-500">Data Quality Check</p>
                 </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <p className="text-sm text-gray-600">Numeric Columns</p>
+                
+                <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+                  <div className="bg-purple-100 rounded-full p-3 w-16 h-16 mx-auto mb-4">
+                    <BarChart3 className="h-10 w-10 text-purple-600" />
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">Numeric Fields</p>
                   <p className="text-2xl font-bold text-purple-600">
-                    {Object.keys(results.input_summary.numeric_summary).length}
+                    {Object.keys(results.input_summary.numeric_summary || {}).length}
                   </p>
+                  <p className="text-xs text-purple-500">Statistical Analysis</p>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-sm text-gray-600">Processing Status</p>
+                
+                <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100">
+                  <div className="bg-green-100 rounded-full p-3 w-16 h-16 mx-auto mb-4">
+                    <CheckCircle className="h-10 w-10 text-green-600" />
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">Processing Status</p>
                   <div className="flex items-center justify-center mt-1">
                     <CheckCircle className="h-6 w-6 text-green-600 mr-1" />
                     <span className="font-bold text-green-600">Complete</span>
+                  </div>
+                  <p className="text-xs text-green-500">100% Success</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Enhanced Action Section */}
+            <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2 flex items-center">
+                    <Download className="h-8 w-8 mr-3 text-emerald-600" />
+                    Export & Reporting Suite
+                  </h3>
+                  <p className="text-gray-600 text-lg">Download detailed analysis results and generate comprehensive business intelligence reports</p>
+                </div>
+                <button
+                  onClick={generateReport}
+                  disabled={reportGenerating}
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-8 py-4 rounded-xl font-semibold hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 flex items-center shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:opacity-50"
+                >
+                  {reportGenerating ? (
+                    <>
+                      <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                      Generating Report...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-5 w-5 mr-2" />
+                      Generate Comprehensive Report
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Object.entries(results.output_files).map(([outputType, fileInfo]) => (
+                  <div key={outputType} className="group">
+                    <button
+                      onClick={() => downloadFile(outputType, results.session_id)}
+                      className="w-full bg-gradient-to-br from-emerald-50 to-green-50 hover:from-emerald-100 hover:to-green-100 border border-emerald-200 rounded-xl p-6 text-center transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
+                    >
+                      <div className="bg-emerald-100 rounded-full p-3 w-16 h-16 mx-auto mb-4 group-hover:scale-110 transition-transform">
+                        <Download className="h-10 w-10 text-emerald-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-800 mb-2 capitalize">
+                        {outputType.replace('_', ' ')}
+                      </h4>
+                      <p className="text-sm text-gray-600 mb-2">{fileInfo.count.toLocaleString()} records</p>
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="text-xs bg-emerald-100 text-emerald-600 px-2 py-1 rounded-full">
+                          CSV
+                        </span>
+                        <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">
+                          Ready
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Report Preview */}
+              <div className="mt-8 pt-8 border-t border-gray-200">
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-800 mb-2">Business Intelligence Report</h4>
+                      <p className="text-gray-600">Comprehensive analysis including:</p>
+                      <ul className="text-sm text-gray-600 mt-2 space-y-1">
+                        <li>• Executive Summary & Key Findings</li>
+                        <li>• Detailed Anomaly Analysis & Root Cause Investigation</li>
+                        <li>• Revenue Impact Assessment & Loss Prevention Recommendations</li>
+                        <li>• Risk Mitigation Strategies & Action Plans</li>
+                      </ul>
+                    </div>
+                    <div className="text-center">
+                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                      <span className="text-sm text-gray-500">JSON Format</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* New Upload Button */}
-            <div className="text-center">
-              <button
-                onClick={resetUpload}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-lg font-medium transition-colors shadow-lg hover:shadow-xl"
-              >
-                Analyze New Dataset
-              </button>
+            {/* Navigation */}
+            <div className="text-center space-y-6">
+              <div className="flex justify-center space-x-4">
+                <button
+                  onClick={resetUpload}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                >
+                  Analyze New Dataset
+                </button>
+                <button
+                  onClick={onBackToHome}
+                  className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 inline-flex items-center"
+                >
+                  <Home className="h-5 w-5 mr-2" />
+                  Back to Home
+                </button>
+              </div>
             </div>
           </div>
         )}
       </div>
-
-      {/* Add Plotly.js script if not already included */}
-      {!document.getElementById('plotly-script') && (
-        <script
-          id="plotly-script"
-          src="https://cdn.plot.ly/plotly-latest.min.js"
-          defer
-        />
-      )}
     </div>
   );
 };

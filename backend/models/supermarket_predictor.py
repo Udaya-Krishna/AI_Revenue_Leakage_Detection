@@ -2,6 +2,7 @@ import pandas as pd
 import joblib
 from pathlib import Path
 from config import config
+import numpy as np
 
 class SupermarketPredictor:
     def __init__(self):
@@ -15,13 +16,26 @@ class SupermarketPredictor:
         try:
             model_dir = config.SUPERMARKET_MODEL_DIR
             
-            self.pipeline = joblib.load(model_dir / "trained_pipeline.pkl")
-            self.leakage_encoder = joblib.load(model_dir / "leakage_encoder.pkl")
-            self.anomaly_encoder = joblib.load(model_dir / "anomaly_encoder.pkl")
+            # Check if model files exist
+            pipeline_path = model_dir / "trained_pipeline.pkl"
+            leakage_encoder_path = model_dir / "leakage_encoder.pkl"
+            anomaly_encoder_path = model_dir / "anomaly_encoder.pkl"
+            
+            if not pipeline_path.exists():
+                raise FileNotFoundError(f"Pipeline model not found at {pipeline_path}")
+            if not leakage_encoder_path.exists():
+                raise FileNotFoundError(f"Leakage encoder not found at {leakage_encoder_path}")
+            if not anomaly_encoder_path.exists():
+                raise FileNotFoundError(f"Anomaly encoder not found at {anomaly_encoder_path}")
+            
+            self.pipeline = joblib.load(pipeline_path)
+            self.leakage_encoder = joblib.load(leakage_encoder_path)
+            self.anomaly_encoder = joblib.load(anomaly_encoder_path)
             
             print("✅ Supermarket models loaded successfully")
         
         except Exception as e:
+            print(f"❌ Failed to load supermarket models: {str(e)}")
             raise Exception(f"Failed to load supermarket models: {str(e)}")
     
     def preprocess_data(self, df):
@@ -32,15 +46,18 @@ class SupermarketPredictor:
             
             # Create Invoice_Num_Int if Invoice_Number exists
             if 'Invoice_Number' in processed_df.columns:
-                processed_df['Invoice_Num_Int'] = processed_df['Invoice_Number'].str.replace("INV", "").astype(int)
+                processed_df['Invoice_Num_Int'] = processed_df['Invoice_Number'].str.replace("INV", "", regex=False).astype(int)
                 processed_df = processed_df.sort_values(by='Invoice_Num_Int').reset_index(drop=True)
             
-            # Create Is_Duplicate flag
-            if 'Invoice_Number' in processed_df.columns:
+                # Create Is_Duplicate flag
                 processed_df['Is_Duplicate'] = (
                     (processed_df['Invoice_Number'] == processed_df['Invoice_Number'].shift(1)) | 
                     (processed_df['Invoice_Number'] == processed_df['Invoice_Number'].shift(-1))
                 ).astype(int)
+            else:
+                # If Invoice_Number doesn't exist, create dummy columns
+                processed_df['Invoice_Num_Int'] = range(len(processed_df))
+                processed_df['Is_Duplicate'] = 0
             
             # Create actual_billing_amnt if required columns exist
             required_cols = ["Actual_Amount", "Tax_Amount", "Service_Charge", "Discount_Amount"]
@@ -51,6 +68,12 @@ class SupermarketPredictor:
                     + processed_df["Service_Charge"] 
                     - processed_df["Discount_Amount"]
                 )
+            elif "Actual_Amount" in processed_df.columns:
+                # Use only Actual_Amount if other columns are missing
+                processed_df["actual_billing_amnt"] = processed_df["Actual_Amount"]
+            else:
+                # Create dummy column if no amount columns exist
+                processed_df["actual_billing_amnt"] = 0
             
             # Drop target columns if they exist
             processed_df = processed_df.drop(columns=['Leakage_Flag', 'Anomaly_Type'], errors='ignore')
@@ -62,9 +85,23 @@ class SupermarketPredictor:
             ]
             X = processed_df.drop(columns=identifier_cols, errors="ignore")
             
+            # Handle any remaining non-numeric columns
+            for col in X.columns:
+                if X[col].dtype == 'object':
+                    try:
+                        # Try to convert to numeric
+                        X[col] = pd.to_numeric(X[col], errors='coerce')
+                    except:
+                        # If conversion fails, use label encoding
+                        X[col] = pd.Categorical(X[col]).codes
+                        
+            # Fill any NaN values with 0
+            X = X.fillna(0)
+            
             return X, processed_df
         
         except Exception as e:
+            print(f"Data preprocessing error: {str(e)}")
             raise Exception(f"Data preprocessing failed: {str(e)}")
     
     def predict(self, df):
@@ -73,8 +110,14 @@ class SupermarketPredictor:
             # Preprocess data
             X, original_df = self.preprocess_data(df)
             
+            print(f"Input data shape: {X.shape}")
+            print(f"Input columns: {list(X.columns)}")
+            
             # Make predictions
             y_pred = self.pipeline.predict(X)
+            
+            print(f"Predictions shape: {y_pred.shape}")
+            print(f"Predictions sample: {y_pred[:5] if len(y_pred) > 0 else 'No predictions'}")
             
             # Decode predictions
             pred_df = pd.DataFrame({
@@ -88,6 +131,7 @@ class SupermarketPredictor:
             return result_df
         
         except Exception as e:
+            print(f"Prediction error: {str(e)}")
             raise Exception(f"Prediction failed: {str(e)}")
     
     def separate_outputs(self, df_with_predictions):
@@ -113,4 +157,5 @@ class SupermarketPredictor:
             }
         
         except Exception as e:
+            print(f"Output separation error: {str(e)}")
             raise Exception(f"Failed to separate outputs: {str(e)}")

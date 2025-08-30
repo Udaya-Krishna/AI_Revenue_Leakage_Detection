@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, send_file
 import os
 import uuid
+import pandas as pd
 from models.supermarket_predictor import SupermarketPredictor
 from utils.file_handler import allowed_file, save_uploaded_file, load_dataframe, save_output_csv, cleanup_file
 from utils.data_processor import get_data_summary, get_prediction_summary
