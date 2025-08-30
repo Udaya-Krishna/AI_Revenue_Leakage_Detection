@@ -1,3 +1,70 @@
+root/
+│── frontend/
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   ├── eslint.config.js
+│   ├── README.md
+│   └── src/
+│       ├── App.jsx
+│       ├── main.jsx
+│       ├── App.css
+│       ├── index.css
+│       └── components/
+│           ├── Homepage/
+│           │   └── HomePage.jsx
+│           ├── Telecommunication/
+│           │   └── Telecommunication.jsx
+│           └── Super_market/
+│               └── Super_market.jsx
+│
+│── model/
+│   ├── telecom/
+│   │   ├── cleaning/
+│   │   │   └── cleaning_1.ipynb
+│   │   ├── dataset/
+│   │   │   ├── telecom_billing_dataset.csv
+│   │   │   └── telecom_input.csv
+│   │   ├── model/
+│   │   │   ├── model.ipynb
+│   │   │   └── model_with_input2.ipynb   # training + prediction logic
+│   │   ├── output_dataset/
+│   │   │   ├── telecom_anomaly_data.csv
+│   │   │   ├── telecom_no_leakage_data.csv
+│   │   │   └── telecom_predictions.csv
+│   │   └── saved_model/
+│   │       ├── le_anomaly.pkl
+│   │       ├── le_leakage.pkl
+│   │       └── telecom_pipeline.pkl
+│   │
+│   └── super_market/
+│       ├── cleaning/
+│       │   ├── clean.ipynb
+│       │   ├── cleaning2.ipynb
+│       │   └── train.ipynb
+│       ├── dataset/
+│       │   ├── input_dataset_cleaned.csv
+│       │   └── supermarket_dataset.csv
+│       ├── models/
+│       │   ├── model.ipynb
+│       │   ├── modelwith_input.ipynb   # training + prediction logic
+│       │   └── Report Generation using_LLM.py
+│       ├── output_datasets/
+│       │   ├── anomaly_data.csv
+│       │   ├── new_supermarket_with_predictions.csv
+│       │   └── no_leakage_data.csv
+│       └── saved_models/
+│           ├── anomaly_encoder.pkl
+│           ├── leakage_encoder.pkl
+│           └── trained_pipeline.pkl
+│
+│── backend/
+│   └── (API, server, logic files go here)
+
+
+
 ## 14. Backend Setup Instructions
 
 ### Installation & Setup:
