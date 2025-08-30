@@ -32,3 +32,9 @@ backend/venv/
 # Ignore uploads and output inside backend
 backend/uploads/
 backend/output/
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
