@@ -83,16 +83,30 @@ const ResultsPage = ({ sessionData, onBackToHome, onVisualization }) => {
     }
   };
 
-  const generateReport = async () => {
+  const generateReport = async (detailed = false) => {
+    if (!results || reportGenerating) return;
+    
     setReportGenerating(true);
+    setError('');
+    
     try {
-      const domain = results.domain || 'supermarket'; // Default to supermarket if not specified
-      const endpoint = domain === 'telecom' 
-        ? `/api/telecom/generate-report/${results.session_id || 'latest'}`
-        : `/api/supermarket/generate-report/${results.session_id || 'latest'}`;
+      const domain = results.domain || 'supermarket';
+      let endpoint;
+      
+      if (detailed) {
+        endpoint = `/api/generate-detailed-report/${results.session_id || 'latest'}`;
+      } else {
+        endpoint = domain === 'telecom' 
+          ? `/api/telecom/generate-report/${results.session_id || 'latest'}`
+          : `/api/supermarket/generate-report/${results.session_id || 'latest'}`;
+      }
       
       const response = await fetch(`http://localhost:5000${endpoint}`, { 
-        method: 'POST' 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ session_id: results.session_id })
       });
       
       if (response.ok) {
@@ -282,121 +296,116 @@ const ResultsPage = ({ sessionData, onBackToHome, onVisualization }) => {
           </div>
         </div>
 
-        {/* Analysis Actions */}
+        {/* Report Generation */}
         <div className={`${themeClasses.cardBg} ${themeClasses.cardBorder} rounded-xl p-6 mb-8`}>
-          <h2 className={`text-xl font-bold ${themeClasses.primaryText} mb-4`}>
-            Analysis Actions
+          <h2 className={`text-2xl font-bold ${themeClasses.primaryText} mb-6 flex items-center`}>
+            <FileText className="h-8 w-8 mr-3 text-purple-600" />
+            Generate Reports
           </h2>
+          
           <p className={`${themeClasses.secondaryText} mb-6`}>
-            View detailed reports and visualizations or download your data
+            Generate comprehensive reports of your analysis results
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
             <button
-              onClick={onVisualization}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              onClick={() => generateReport(false)}
+              disabled={reportGenerating}
+              className={`${themeClasses.button} border px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center ${reportGenerating ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
             >
-              <BarChart3 className="h-5 w-5 mr-2" />
-              View Full Visualization
+              <FileText className="h-5 w-5 mr-2" />
+              {reportGenerating ? 'Generating...' : 'Generate Standard Report'}
             </button>
             
-                             <button
-                   onClick={generateReport}
-                   disabled={reportGenerating}
-                   className={`${themeClasses.button} border px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center ${reportGenerating ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
-                 >
-                   <FileText className="h-5 w-5 mr-2" />
-                   {reportGenerating ? 'Generating Report...' : 'Generate Word Report'}
-                 </button>
+            <button
+              onClick={() => generateReport(true)}
+              disabled={reportGenerating}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FileText className="h-5 w-5 mr-2" />
+              {reportGenerating ? 'Generating...' : 'Generate Detailed Report'}
+            </button>
+
+            <button
+              onClick={onVisualization}
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+            >
+              <BarChart3 className="h-5 w-5 mr-2" />
+              View Interactive Visualizations
+            </button>
           </div>
         </div>
-
+        
         {/* Download Results */}
-        <div className={`${themeClasses.cardBg} ${themeClasses.cardBorder} rounded-xl p-6`}>
-          <h2 className={`text-xl font-bold ${themeClasses.primaryText} mb-4`}>
+        <div className={`${themeClasses.cardBg} ${themeClasses.cardBorder} rounded-xl p-6 mb-8`}>
+          <h2 className={`text-2xl font-bold ${themeClasses.primaryText} mb-6 flex items-center`}>
+            <Download className="h-8 w-8 mr-3 text-blue-600" />
             Download Results
           </h2>
+          
           <p className={`${themeClasses.secondaryText} mb-6`}>
-            Get your processed data in different formats for further analysis
+            Download your analysis results in different formats
           </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {results.download_links && Object.entries(results.download_links).map(([type, filename]) => {
-              const typeConfig = {
-                all_results: { 
-                  title: 'Complete Analysis Report', 
-                  icon: '📊', 
-                  color: 'bg-blue-100 text-blue-600' 
-                },
-                anomalies_only: { 
-                  title: 'Revenue Leakages Only', 
-                  icon: '⚠️', 
-                  color: 'bg-red-100 text-red-600' 
-                },
-                no_leakage_only: { 
-                  title: 'Clean Records Only', 
-                  icon: '✅', 
-                  color: 'bg-green-100 text-green-600' 
-                }
-              };
+          {results.download_links && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {Object.entries(results.download_links).map(([type, filename]) => {
+                const typeConfig = {
+                  all_results: { 
+                    title: 'Complete Analysis', 
+                    icon: '📊', 
+                    color: 'bg-blue-100 text-blue-600' 
+                  },
+                  anomalies_only: { 
+                    title: 'Revenue Leakages', 
+                    icon: '⚠️', 
+                    color: 'bg-red-100 text-red-600' 
+                  },
+                  no_leakage_only: { 
+                    title: 'Clean Records', 
+                    icon: '✅', 
+                    color: 'bg-green-100 text-green-600' 
+                  }
+                };
 
-              const config = typeConfig[type] || typeConfig.all_results;
+                const config = typeConfig[type] || typeConfig.all_results;
 
-              return (
-                <button
-                  key={type}
-                  onClick={() => handleDownload(filename)}
-                  className={`${themeClasses.cardBg} border-2 border-gray-200 hover:border-blue-300 rounded-xl p-6 text-center transition-all hover:shadow-lg hover:-translate-y-1 group`}
-                >
-                  <div className="text-4xl mb-3">{config.icon}</div>
-                  <h3 className={`font-semibold ${themeClasses.primaryText} mb-2`}>
-                    {config.title}
-                  </h3>
-                  <div className="flex items-center justify-center">
-                    <span className={`text-xs ${config.color} px-3 py-1 rounded-full font-medium`}>
-                      Download CSV
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Footer Navigation */}
-        <div className="text-center mt-8">
-          <div className="flex justify-center space-x-4">
-            <button
-              onClick={() => {/* Reset for new upload */}}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-            >
-              Analyze New Dataset
-            </button>
-            <button
-              onClick={onBackToHome}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center"
-            >
-              <Home className="h-5 w-5 mr-2" />
-              Back to Home
-            </button>
-          </div>
-          
-          {/* Session Info */}
-          <div className={`${isDark ? 'bg-gray-800/60 border border-gray-700' : 'bg-gray-50 border border-gray-200'} rounded-xl p-4 mt-6 text-center`}>
-            <p className={`${themeClasses.secondaryText} mb-2`}>
-              Analysis completed successfully • Session ID: {results.session_id?.substring(0, 8)}...
-            </p>
-            <div className="flex items-center justify-center space-x-6 text-sm text-gray-500">
-              <span className="flex items-center">
-                <Eye className="h-4 w-4 mr-1" /> AI-Powered Detection
-              </span>
-              <span className="flex items-center">
-                <BarChart3 className="h-4 w-4 mr-1" /> Interactive Analytics
-              </span>
-              <span className="flex items-center">
-                <TrendingUp className="h-4 w-4 mr-1" /> Predictive Insights
-              </span>
+                return (
+                  <button
+                    key={type}
+                    onClick={() => handleDownload(filename)}
+                    className={`${themeClasses.cardBg} border-2 border-gray-200 hover:border-blue-300 rounded-xl p-6 text-center transition-all hover:shadow-lg hover:-translate-y-1`}
+                  >
+                    <div className="text-4xl mb-3">{config.icon}</div>
+                    <h3 className={`font-semibold ${themeClasses.primaryText} mb-2`}>
+                      {config.title}
+                    </h3>
+                    <div className="flex items-center justify-center">
+                      <span className={`text-xs ${config.color} px-3 py-1 rounded-full font-medium`}>
+                        Download CSV
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+          )}
+        </div>
+        
+        {/* Session Info */}
+        <div className={`${isDark ? 'bg-gray-800/60 border border-gray-700' : 'bg-gray-50 border border-gray-200'} rounded-xl p-4 text-center`}>
+          <p className={`${themeClasses.secondaryText} mb-2`}>
+            Analysis completed successfully • Session ID: {results.session_id?.substring(0, 8)}...
+          </p>
+          <div className="flex items-center justify-center space-x-6 text-sm text-gray-500">
+            <span className="flex items-center">
+              <Eye className="h-4 w-4 mr-1" /> AI-Powered Detection
+            </span>
+            <span className="flex items-center">
+              <BarChart3 className="h-4 w-4 mr-1" /> Interactive Analytics
+            </span>
+            <span className="flex items-center">
+              <TrendingUp className="h-4 w-4 mr-1" /> Predictive Insights
+            </span>
           </div>
         </div>
       </div>

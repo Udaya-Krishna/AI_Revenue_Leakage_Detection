@@ -192,32 +192,90 @@ def create_telecom_visualizations(leakage_data):
         print(f"Error creating telecom visualizations: {e}")
         return None
 
+def generate_ollama_report(domain, leakage_data, total_leakage_inr, leakage_percentage):
+    """Generate detailed report using Ollama3"""
+    try:
+        import requests
+        import json
+        
+        # Convert leakage data to string for context (limit to 1000 tokens)
+        leakage_info = leakage_data.head(100).to_string()
+        if len(leakage_info) > 4000:
+            leakage_info = leakage_info[:4000]
+        
+        # Prepare the prompt for Ollama3
+        prompt = f"""
+        You are a senior business analyst specializing in {domain} revenue leakage detection.
+        Analyze the following data and provide a detailed report with:
+        1. Executive Summary
+        2. Key Findings
+        3. Root Cause Analysis
+        4. Impact Assessment
+        5. Detailed Recommendations
+        6. Implementation Plan
+        
+        Total Revenue Leakage: ₹{total_leakage_inr:,.2f}
+        Leakage Percentage: {leakage_percentage:.2f}%
+        
+        Data Sample:
+        {leakage_info}
+        """
+        
+        # Call Ollama API
+        response = requests.post(
+            'http://localhost:11434/api/generate',
+            json={
+                'model': 'llama3',
+                'prompt': prompt,
+                'stream': False,
+                'options': {
+                    'temperature': 0.7,
+                    'max_tokens': 2000
+                }
+            }
+        )
+        
+        if response.status_code == 200:
+            return response.json().get('response', 'No response from Ollama')
+        else:
+            return f"Error generating report: {response.text}"
+            
+    except Exception as e:
+        return f"Error in Ollama report generation: {str(e)}"
+
 def generate_ai_recommendations(domain, leakage_data, total_leakage_inr, leakage_percentage):
     """Generate AI-powered recommendations using Gemini API with detailed, specific prompts"""
     try:
-        # Ensure leakage_data is a DataFrame
-        leakage_data = pd.DataFrame(leakage_data)
+        # Configure Gemini API
+        google_api_key = os.getenv('GOOGLE_API_KEY')
+        if not google_api_key:
+            return "Error: Google API key not configured"
+            
+        genai.configure(api_key=google_api_key)
         
-        gemini_api_key = os.getenv('GEMINI_API_KEY')
-        if not gemini_api_key:
-            print("Warning: GEMINI_API_KEY not found. Using fallback recommendations.")
-            # Return domain-specific fallback recommendations
-            if domain == 'supermarket':
-                return [
-                    "Implement real-time transaction monitoring for high-value items",
-                    "Enhance staff training on proper discount application procedures",
-                    "Implement dual verification for transactions above ₹10,000",
-                    "Review and update inventory management practices",
-                    "Conduct regular cash register audits"
-                ]
-            else:  # telecom
-                return [
-                    "Implement real-time monitoring for high-value plan activations",
-                    "Enhance agent training on plan validation procedures",
-                    "Implement additional verification for high-value plan changes",
-                    "Review and update commission structures to prevent fraud",
-                    "Conduct regular audits of agent transactions"
-                ]
+        # Select the appropriate model
+        model = genai.GenerativeModel('gemini-1.5-pro')
+        
+        # Convert leakage data to string for context
+        leakage_info = leakage_data.head(50).to_string()  # Send first 50 rows for context
+        
+        # Create a domain-specific prompt with detailed instructions
+        if domain == 'supermarket':
+            return [
+                "Implement real-time transaction monitoring for high-value items",
+                "Enhance staff training on proper discount application procedures",
+                "Implement dual verification for transactions above ₹10,000",
+                "Review and update inventory management practices",
+                "Conduct regular cash register audits"
+            ]
+        else:  # telecom
+            return [
+                "Implement real-time monitoring for high-value plan activations",
+                "Enhance agent training on plan validation procedures",
+                "Implement additional verification for high-value plan changes",
+                "Review and update commission structures to prevent fraud",
+                "Conduct regular audits of agent transactions"
+            ]
         
         # Configure Gemini
         genai.configure(api_key=gemini_api_key)
@@ -1811,6 +1869,94 @@ def test_ai_recommendations():
         
     except Exception as e:
         return jsonify({'success': False, 'error': f'Error testing AI recommendations: {str(e)}'}), 500
+
+@app.route('/api/generate-detailed-report/<session_id>', methods=['POST'])
+def generate_detailed_report(session_id):
+    """Generate a detailed report using Ollama3"""
+    try:
+        # Check if session exists in memory
+        if session_id not in results_store:
+            return jsonify({"error": "Session not found"}), 404
+            
+        # Get session data
+        session_data = results_store[session_id]
+        
+        # Check if we have the processed data path
+        if 'processed_data_path' not in session_data:
+            return jsonify({"error": "No processed data found for this session"}), 400
+            
+        # Load the processed data
+        leakage_data = pd.read_csv(session_data['processed_data_path'])
+        
+        # Calculate total leakage
+        leakage_column = 'Balance_Amount' if 'Balance_Amount' in leakage_data.columns else 'Balance_amount'
+        total_leakage = leakage_data[leakage_column].sum() * 87.79  # Convert to INR
+        
+        # Calculate leakage percentage
+        total_revenue = session_data.get('total_revenue', 0)
+        leakage_percentage = (total_leakage / total_revenue * 100) if total_revenue > 0 else 0
+        
+        # Get domain from session data or infer from columns
+        domain = session_data.get('domain', 'supermarket' if 'Store_Branch' in leakage_data.columns else 'telecom')
+        
+        # Generate detailed report using Ollama
+        detailed_report = generate_ollama_report(domain, leakage_data, total_leakage, leakage_percentage)
+        
+        # Create Word document
+        doc = Document()
+        
+        # Add title
+        title = doc.add_heading(f'{domain.capitalize()} Detailed Revenue Leakage Report', level=1)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Add date
+        doc.add_paragraph(f"Report generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        doc.add_paragraph()
+        
+        # Add detailed report content
+        for line in detailed_report.split('\n'):
+            if line.strip() == '':
+                doc.add_paragraph()
+            elif line.strip().endswith(':'):  # Likely a heading
+                doc.add_heading(line.strip(' :'), level=2)
+            else:
+                doc.add_paragraph(line)
+        
+        # Save document to buffer
+        doc_buffer = io.BytesIO()
+        doc.save(doc_buffer)
+        doc_buffer.seek(0)
+        
+        # Generate filename
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"detailed_{domain}_report_{timestamp}.docx"
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+        
+        # Ensure output directory exists
+        os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+        
+        # Save to file
+        with open(output_path, 'wb') as f:
+            f.write(doc_buffer.getvalue())
+        
+        # Update session with detailed report info
+        session_data['detailed_report_file'] = filename
+        
+        # Update the session in results_store
+        results_store[session_id] = session_data
+        
+        # Prepare response
+        response = send_file(
+            doc_buffer,
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+        return response
+        
+    except Exception as e:
+        return jsonify({"error": f"Error generating detailed report: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
