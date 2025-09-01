@@ -1,36 +1,74 @@
-# Python
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
 venv/
-backend/venv/
-__pycache__/
-*.pyc
+.env/
+env/
+.venv/
 
-# Node / React
-node_modules/
-frontend/node_modules/
-dist/
+# Distribution / packaging
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Env files
-.env
+# Logs and databases
+*.log
+*.sqlite3
+*.db
 
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
 
-# Ignore uploads and output inside backend
-backend/uploads/
-backend/output/
+# Pytest / Coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+coverage.xml
 
+# Environment variables
+*.env
+*.ini
+*.cfg
 
-# Ignore Python cache
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-__pycache__/
+# Flask instance folder
+instance/
 
+# Model files (large binaries)
+*.h5
+*.hdf5
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.sav
+*.model
 
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
+# Datasets
+data/
+dataset/
+*.csv
+*.tsv
 
-# PyCharm / JetBrains project files
+# IDE files
+.vscode/
 .idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
