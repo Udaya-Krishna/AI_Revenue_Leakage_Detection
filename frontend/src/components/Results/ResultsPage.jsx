@@ -12,6 +12,7 @@ const ResultsPage = ({ sessionData, onBackToHome, onVisualization }) => {
   const [loading, setLoading] = useState(!sessionData);
   const [error, setError] = useState('');
   const [chartsReady, setChartsReady] = useState(false);
+  const [reportGenerating, setReportGenerating] = useState(false);
 
   // Load Plotly for charts
   useEffect(() => {
@@ -79,6 +80,43 @@ const ResultsPage = ({ sessionData, onBackToHome, onVisualization }) => {
       await downloadFile(filename);
     } catch (err) {
       setError(handleApiError(err));
+    }
+  };
+
+  const generateReport = async () => {
+    setReportGenerating(true);
+    try {
+      const domain = results.domain || 'supermarket'; // Default to supermarket if not specified
+      const endpoint = domain === 'telecom' 
+        ? `/api/telecom/generate-report/${results.session_id || 'latest'}`
+        : `/api/supermarket/generate-report/${results.session_id || 'latest'}`;
+      
+      const response = await fetch(`http://localhost:5000${endpoint}`, { 
+        method: 'POST' 
+      });
+      
+      const reportData = await response.json();
+      
+      if (reportData.success) {
+        // Create a downloadable report file
+        const reportContent = reportData.report.content;
+        const blob = new Blob([reportContent], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${domain}_comprehensive_report_${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        setError(reportData.error || 'Failed to generate report');
+      }
+    } catch (err) {
+      console.error('Report generation error:', err);
+      setError('Report generation failed. Please ensure the backend is running and analysis has been completed.');
+    } finally {
+      setReportGenerating(false);
     }
   };
 
@@ -227,11 +265,12 @@ const ResultsPage = ({ sessionData, onBackToHome, onVisualization }) => {
             </button>
             
             <button
-              onClick={() => {/* Implement detailed report view */}}
-              className={`${themeClasses.button} border px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center`}
+              onClick={generateReport}
+              disabled={reportGenerating}
+              className={`${themeClasses.button} border px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center ${reportGenerating ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
             >
               <FileText className="h-5 w-5 mr-2" />
-              View Detailed Report
+              {reportGenerating ? 'Generating Report...' : 'View Detailed Report'}
             </button>
           </div>
         </div>

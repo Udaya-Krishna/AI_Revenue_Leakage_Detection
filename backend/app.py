@@ -9,6 +9,89 @@ import plotly.graph_objs as go
 import plotly.utils
 import uuid
 import numpy as np
+import google.generativeai as genai
+import sys
+
+# Add the report_generation directory to the path
+sys.path.append(os.path.join(os.path.dirname(__file__), 'report_generation'))
+
+def generate_basic_supermarket_report(leakage_data, total_leakage_inr, leakage_percentage):
+    """Generate a basic supermarket report when integrated analysis is not available"""
+    try:
+        total_anomalies = len(leakage_data)
+        avg_leakage = leakage_data['Balance_Amount'].mean() * 87.79 if 'Balance_Amount' in leakage_data.columns else 0
+        top_anomaly_types = leakage_data['Anomaly_Type_Pred'].value_counts().head(3).to_dict() if 'Anomaly_Type_Pred' in leakage_data.columns else {}
+        top_branches = leakage_data['Store_Branch'].value_counts().head(3).to_dict() if 'Store_Branch' in leakage_data.columns else {}
+        
+        report = f"""
+SUPERMARKET REVENUE LEAKAGE REPORT
+===================================
+
+EXECUTIVE SUMMARY:
+- Total Revenue Leaked: ₹{total_leakage_inr:,.2f}
+- Leakage Percentage: {leakage_percentage:.2f}%
+- Total Anomalies Detected: {total_anomalies:,}
+- Average Leakage per Transaction: ₹{avg_leakage:,.2f}
+
+TOP ANOMALY TYPES:
+{chr(10).join([f"- {anomaly_type}: {count} occurrences" for anomaly_type, count in top_anomaly_types.items()])}
+
+TOP BRANCHES WITH LEAKAGES:
+{chr(10).join([f"- {branch}: {count} occurrences" for branch, count in top_branches.items()])}
+
+RECOMMENDATIONS:
+1. Investigate the most common anomaly types to identify root causes
+2. Review processes at branches with high leakage rates
+3. Implement additional validation checks for high-risk transactions
+4. Provide training to staff on identified leakage patterns
+5. Establish regular monitoring and reporting procedures
+
+This report was generated automatically by the AI Revenue Leakage Detection System.
+        """
+        
+        return report
+        
+    except Exception as e:
+        return f"Error generating basic report: {str(e)}"
+
+def generate_basic_telecom_report(leakage_data, total_leakage_inr, leakage_percentage):
+    """Generate a basic telecom report when integrated analysis is not available"""
+    try:
+        total_anomalies = len(leakage_data)
+        avg_leakage = leakage_data['Balance_amount'].mean() * 87.79 if 'Balance_amount' in leakage_data.columns else 0
+        top_anomaly_types = leakage_data['Anomaly_type'].value_counts().head(3).to_dict() if 'Anomaly_type' in leakage_data.columns else {}
+        top_zones = leakage_data['Zone_area'].value_counts().head(3).to_dict() if 'Zone_area' in leakage_data.columns else {}
+        
+        report = f"""
+TELECOM REVENUE LEAKAGE REPORT
+===============================
+
+EXECUTIVE SUMMARY:
+- Total Revenue Leaked: ₹{total_leakage_inr:,.2f}
+- Leakage Percentage: {leakage_percentage:.2f}%
+- Total Anomalies Detected: {total_anomalies:,}
+- Average Leakage per Transaction: ₹{avg_leakage:,.2f}
+
+TOP ANOMALY TYPES:
+{chr(10).join([f"- {anomaly_type}: {count} occurrences" for anomaly_type, count in top_anomaly_types.items()])}
+
+TOP ZONES WITH LEAKAGES:
+{chr(10).join([f"- {zone}: {count} occurrences" for zone, count in top_zones.items()])}
+
+RECOMMENDATIONS:
+1. Investigate the most common anomaly types to identify root causes
+2. Review processes at zones with high leakage rates
+3. Implement additional validation checks for high-risk transactions
+4. Provide training to agents on identified leakage patterns
+5. Establish regular monitoring and reporting procedures
+
+This report was generated automatically by the AI Revenue Leakage Detection System.
+        """
+        
+        return report
+        
+    except Exception as e:
+        return f"Error generating basic report: {str(e)}"
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -769,6 +852,251 @@ def session_summary(session_id):
         })
     else:
         return jsonify({'success': False, 'error': 'Session not found'}), 404
+
+# Report Generation Endpoints
+@app.route('/api/supermarket/generate-report/<session_id>', methods=['POST'])
+def generate_supermarket_report(session_id):
+    """Generate comprehensive report for supermarket domain"""
+    try:
+        # Use the anomaly dataset directly from the model output directory
+        anomaly_data_path = "model/super_market/output_datasets/anomaly_data.csv"
+        
+        if not os.path.exists(anomaly_data_path):
+            return jsonify({'success': False, 'error': 'Anomaly data not found. Please run analysis first.'}), 404
+        
+        # Read the anomaly data
+        leakage_data = pd.read_csv(anomaly_data_path)
+        
+        if leakage_data.empty:
+            return jsonify({'success': False, 'error': 'No anomaly data available for report generation'}), 400
+        
+        # Get a sample of the data for the report
+        leakage_sample = leakage_data.head(10)
+        
+        # Calculate total leakage amount in INR (assuming USD to INR conversion rate of 87.79)
+        total_leakage_inr = leakage_data['Balance_Amount'].sum() * 87.79
+        
+        # Get total records from the full dataset to calculate percentage
+        full_dataset_path = "model/super_market/output_datasets/new_supermarket_with_predictions.csv"
+        if os.path.exists(full_dataset_path):
+            full_dataset = pd.read_csv(full_dataset_path)
+            total_records = len(full_dataset)
+        else:
+            total_records = len(leakage_data)  # Fallback if full dataset not available
+        
+        leakage_percentage = (len(leakage_data) / total_records * 100) if total_records > 0 else 0
+        
+        # Check if Gemini API key is available
+        gemini_api_key = os.getenv('GEMINI_API_KEY')
+        
+        if gemini_api_key:
+            # Try to generate the report using the integrated analysis with Gemini API
+            try:
+                from integrated_analysis import IntegratedAnalyzer
+                analyzer = IntegratedAnalyzer()
+                # Configure the API key
+                genai.configure(api_key=gemini_api_key)
+                report = analyzer.generate_sales_api_report(
+                    leakage_data, leakage_sample, total_leakage_inr, leakage_percentage
+                )
+                
+                return jsonify({
+                    'success': True,
+                    'report': {
+                        'content': report,
+                        'summary': {
+                            'total_leakage_inr': total_leakage_inr,
+                            'leakage_percentage': leakage_percentage,
+                            'total_anomalies': len(leakage_data),
+                            'domain': 'supermarket',
+                            'report_type': 'AI-Generated (Gemini)'
+                        }
+                    }
+                })
+                
+            except Exception as e:
+                print(f"Gemini API report generation failed, falling back to basic report: {str(e)}")
+                # Fall through to basic report generation
+        
+        # Generate basic report
+        report = generate_basic_supermarket_report(leakage_data, total_leakage_inr, leakage_percentage)
+        return jsonify({
+            'success': True,
+            'report': {
+                'content': report,
+                'summary': {
+                    'total_leakage_inr': total_leakage_inr,
+                    'leakage_percentage': leakage_percentage,
+                    'total_anomalies': len(leakage_data),
+                    'domain': 'supermarket',
+                    'report_type': 'Basic Analysis'
+                }
+            }
+        })
+            
+    except Exception as e:
+        print(f"Error generating supermarket report: {str(e)}")
+        return jsonify({'success': False, 'error': f'Report generation failed: {str(e)}'}), 500
+
+@app.route('/api/telecom/generate-report/<session_id>', methods=['POST'])
+def generate_telecom_report(session_id):
+    """Generate comprehensive report for telecom domain"""
+    try:
+        # Use the anomaly dataset directly from the model output directory
+        anomaly_data_path = "model/Telecom/output_dataset/telecom_anomaly_data.csv"
+        
+        if not os.path.exists(anomaly_data_path):
+            return jsonify({'success': False, 'error': 'Anomaly data not found. Please run analysis first.'}), 404
+        
+        # Read the anomaly data
+        leakage_data = pd.read_csv(anomaly_data_path)
+        
+        if leakage_data.empty:
+            return jsonify({'success': False, 'error': 'No anomaly data available for report generation'}), 400
+        
+        # Get a sample of the data for the report
+        leakage_sample = leakage_data.head(10)
+        
+        # Calculate total leakage amount in INR (assuming USD to INR conversion rate of 87.79)
+        total_leakage_inr = leakage_data['Balance_amount'].sum() * 87.79
+        
+        # Get total records from the full dataset to calculate percentage
+        full_dataset_path = "model/Telecom/output_dataset/telecom_predictions.csv"
+        if os.path.exists(full_dataset_path):
+            full_dataset = pd.read_csv(full_dataset_path)
+            total_records = len(full_dataset)
+        else:
+            total_records = len(leakage_data)  # Fallback if full dataset not available
+        
+        leakage_percentage = (len(leakage_data) / total_records * 100) if total_records > 0 else 0
+        
+        # Check if Gemini API key is available
+        gemini_api_key = os.getenv('GEMINI_API_KEY')
+        
+        if gemini_api_key:
+            # Try to generate the report using the integrated analysis with Gemini API
+            try:
+                from integrated_analysis import IntegratedAnalyzer
+                analyzer = IntegratedAnalyzer()
+                # Configure the API key
+                genai.configure(api_key=gemini_api_key)
+                report = analyzer.generate_telecom_api_report(
+                    leakage_data, leakage_sample, total_leakage_inr, leakage_percentage
+                )
+                
+                return jsonify({
+                    'success': True,
+                    'report': {
+                        'content': report,
+                        'summary': {
+                            'total_leakage_inr': total_leakage_inr,
+                            'leakage_percentage': leakage_percentage,
+                            'total_anomalies': len(leakage_data),
+                            'domain': 'telecom',
+                            'report_type': 'AI-Generated (Gemini)'
+                        }
+                    }
+                })
+                
+            except Exception as e:
+                print(f"Gemini API report generation failed, falling back to basic report: {str(e)}")
+                # Fall through to basic report generation
+        
+        # Generate basic report
+        report = generate_basic_telecom_report(leakage_data, total_leakage_inr, leakage_percentage)
+        return jsonify({
+            'success': True,
+            'report': {
+                'content': report,
+                'summary': {
+                    'total_leakage_inr': total_leakage_inr,
+                    'leakage_percentage': leakage_percentage,
+                    'total_anomalies': len(leakage_data),
+                    'domain': 'telecom',
+                    'report_type': 'Basic Analysis'
+                }
+            }
+        })
+            
+    except Exception as e:
+        print(f"Error generating telecom report: {str(e)}")
+        return jsonify({'success': False, 'error': f'Report generation failed: {str(e)}'}), 500
+
+# Check if anomaly data exists for report generation
+@app.route('/api/check-anomaly-data', methods=['GET'])
+def check_anomaly_data():
+    """Check if anomaly data exists for report generation"""
+    try:
+        # Check supermarket anomaly data
+        supermarket_anomaly_path = "model/super_market/output_datasets/anomaly_data.csv"
+        telecom_anomaly_path = "model/Telecom/output_dataset/telecom_anomaly_data.csv"
+        
+        supermarket_exists = os.path.exists(supermarket_anomaly_path)
+        telecom_exists = os.path.exists(telecom_anomaly_path)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'supermarket': {
+                    'exists': supermarket_exists,
+                    'path': supermarket_anomaly_path if supermarket_exists else None
+                },
+                'telecom': {
+                    'exists': telecom_exists,
+                    'path': telecom_anomaly_path if telecom_exists else None
+                }
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Error checking anomaly data: {str(e)}'}), 500
+
+# Get anomaly data info for report generation
+@app.route('/api/anomaly-data-info', methods=['GET'])
+def get_anomaly_data_info():
+    """Get information about available anomaly data for report generation"""
+    try:
+        info = {}
+        
+        # Check supermarket data
+        supermarket_anomaly_path = "model/super_market/output_datasets/anomaly_data.csv"
+        if os.path.exists(supermarket_anomaly_path):
+            try:
+                df = pd.read_csv(supermarket_anomaly_path)
+                info['supermarket'] = {
+                    'exists': True,
+                    'record_count': len(df),
+                    'last_modified': os.path.getmtime(supermarket_anomaly_path),
+                    'columns': list(df.columns)
+                }
+            except Exception as e:
+                info['supermarket'] = {'exists': True, 'error': str(e)}
+        else:
+            info['supermarket'] = {'exists': False}
+        
+        # Check telecom data
+        telecom_anomaly_path = "model/Telecom/output_dataset/telecom_anomaly_data.csv"
+        if os.path.exists(telecom_anomaly_path):
+            try:
+                df = pd.read_csv(telecom_anomaly_path)
+                info['telecom'] = {
+                    'exists': True,
+                    'record_count': len(df),
+                    'last_modified': os.path.getmtime(telecom_anomaly_path),
+                    'columns': list(df.columns)
+                }
+            except Exception as e:
+                info['telecom'] = {'exists': True, 'error': str(e)}
+        else:
+            info['telecom'] = {'exists': False}
+        
+        return jsonify({
+            'success': True,
+            'data': info
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Error getting anomaly data info: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
