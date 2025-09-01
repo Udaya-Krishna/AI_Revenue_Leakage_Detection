@@ -1,4 +1,5 @@
 import os
+import re
 import matplotlib
 # Set matplotlib backend to 'Agg' to avoid GUI warnings
 matplotlib.use('Agg')
@@ -412,34 +413,64 @@ Focus on providing specific, actionable recommendations that address the root ca
                 else:
                     raise e
         
-        if recommendations_text:
+        if not recommendations_text:
+            return None
+            
+        try:
+            # Remove any markdown formatting for headers
+            recommendations_text = recommendations_text.replace('**', '')
+            
             # Parse the response into structured recommendations
-            lines = recommendations_text.split('\n')
+            lines = [line.strip() for line in recommendations_text.split('\n') if line.strip()]
             recommendations = []
             
             for line in lines:
-                line = line.strip()
-                if line and (line.startswith(('1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.', '10.')) or 
-                           line.startswith(('•', '-', '*')) or
-                           line.startswith(('1)', '2)', '3)', '4)', '5)', '6)', '7)', '8)', '9)', '10)'))):
-                    # Clean up the recommendation text
-                    clean_rec = line.lstrip('1234567890.•-*() ').strip()
-                    if clean_rec and len(clean_rec) > 10:  # Only add meaningful recommendations
+                # Skip section headers and other non-recommendation lines
+                line_lower = line.lower()
+                if any(header in line_lower for header in ['report', 'summary', 'analysis', 'context:', 'leakage summary', 'financial analysis']):
+                    continue
+                    
+                # Handle numbered lists (e.g., "1. Text" or "1) Text")
+                if re.match(r'^\d+[.)]', line):
+                    # Remove the number and following punctuation
+                    clean_rec = re.sub(r'^\d+[.)]\s*', '', line).strip()
+                    if clean_rec and len(clean_rec) > 10:
                         recommendations.append(clean_rec)
-                elif line and len(line) > 20 and not line.startswith('Context:') and not line.startswith('Please provide:') and not line.startswith('*') and not line.startswith('Report Sections:'):
-                    # Add lines that look like recommendations but don't have bullets
+                # Handle bullet points
+                elif line.startswith(('•', '-', '*', '◦')):
+                    clean_rec = line.lstrip('•-*◦ ').strip()
+                    if clean_rec and len(clean_rec) > 10:
+                        recommendations.append(clean_rec)
+                # Add other meaningful lines that aren't too short
+                elif len(line) > 20 and not any(header in line_lower for header in ['please provide', 'report sections']):
                     recommendations.append(line)
             
-            # If we couldn't parse structured recommendations, use the full response
+            # If we couldn't parse structured recommendations, split by double newlines
             if not recommendations:
-                recommendations = [recommendations_text]
+                recommendations = [rec.strip() for rec in recommendations_text.split('\n\n') if rec.strip()]
             
-            return recommendations[:10]  # Limit to 10 recommendations
+            # Ensure we don't have any duplicates and limit to 10 recommendations
+            seen = set()
+            unique_recommendations = []
+            for rec in recommendations:
+                if rec and rec not in seen and len(rec) > 10:
+                    seen.add(rec)
+                    unique_recommendations.append(rec)
+                    if len(unique_recommendations) >= 10:
+                        break
             
-        return None
+            return unique_recommendations if unique_recommendations else None
+            
+        except Exception as e:
+            print(f"Error parsing AI recommendations: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
         
     except Exception as e:
         print(f"Error generating AI recommendations: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def create_word_document(domain, leakage_data, total_leakage_inr, leakage_percentage, report_content, visualizations_buffer):
