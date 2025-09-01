@@ -1,6 +1,13 @@
 import os
+import matplotlib
+# Set matplotlib backend to 'Agg' to avoid GUI warnings
+matplotlib.use('Agg')
+from dotenv import load_dotenv
 import pandas as pd
 import joblib
+
+# Load environment variables from .env file
+load_dotenv()
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -187,20 +194,80 @@ def create_telecom_visualizations(leakage_data):
 def generate_ai_recommendations(domain, leakage_data, total_leakage_inr, leakage_percentage):
     """Generate AI-powered recommendations using Gemini API with detailed, specific prompts"""
     try:
+        # Ensure leakage_data is a DataFrame
+        leakage_data = pd.DataFrame(leakage_data)
+        
         gemini_api_key = os.getenv('GEMINI_API_KEY')
         if not gemini_api_key:
-            return None
+            print("Warning: GEMINI_API_KEY not found. Using fallback recommendations.")
+            # Return domain-specific fallback recommendations
+            if domain == 'supermarket':
+                return [
+                    "Implement real-time transaction monitoring for high-value items",
+                    "Enhance staff training on proper discount application procedures",
+                    "Implement dual verification for transactions above ₹10,000",
+                    "Review and update inventory management practices",
+                    "Conduct regular cash register audits"
+                ]
+            else:  # telecom
+                return [
+                    "Implement real-time monitoring for high-value plan activations",
+                    "Enhance agent training on plan validation procedures",
+                    "Implement additional verification for high-value plan changes",
+                    "Review and update commission structures to prevent fraud",
+                    "Conduct regular audits of agent transactions"
+                ]
         
         # Configure Gemini
         genai.configure(api_key=gemini_api_key)
         model = genai.GenerativeModel('gemini-1.5-flash')
         
         if domain == 'supermarket':
-            # Prepare detailed data for supermarket analysis
-            leakage_sample = leakage_data[['Invoice_number', 'Customer_id', 'Anomaly_Type_Pred', 'Store_Branch', 
-                                         'Product_Name', 'Cashier_ID', 'Billed_Amount', 'Paid_Amount', 
-                                         'Balance_Amount', 'Tax_Amount', 'Service_Charge', 'Discount_Amount', 
-                                         'Billing_Date']].head(20)
+            # Check for required columns and provide defaults if missing
+            required_columns = {
+                'Anomaly_Type_Pred': 'Anomaly_Type_Pred',
+                'Store_Branch': 'Store_Branch',
+                'Product_Name': 'Product_Name',
+                'Cashier_ID': 'Cashier_ID',
+                'Billed_Amount': 'Billed_Amount',
+                'Paid_Amount': 'Paid_Amount',
+                'Balance_Amount': 'Balance_Amount',
+                'Tax_Amount': 'Tax_Amount',
+                'Service_Charge': 'Service_Charge',
+                'Discount_Amount': 'Discount_Amount',
+                'Billing_Date': 'Billing_Date',
+                'Invoice_number': 'Invoice_number',
+                'Customer_id': 'Customer_id'
+            }
+            
+            # Map existing columns to expected names
+            column_mapping = {}
+            for default_col, expected_col in required_columns.items():
+                # Try to find a matching column (case insensitive)
+                matching_cols = [col for col in leakage_data.columns if col.lower() == expected_col.lower()]
+                if matching_cols:
+                    column_mapping[default_col] = matching_cols[0]
+                else:
+                    # If column not found, create a dummy column
+                    leakage_data[default_col] = 'N/A'
+                    column_mapping[default_col] = default_col
+            
+            # Prepare sample data with mapped columns
+            leakage_sample = leakage_data[[
+                column_mapping['Invoice_number'],
+                column_mapping['Customer_id'],
+                column_mapping['Anomaly_Type_Pred'],
+                column_mapping['Store_Branch'],
+                column_mapping['Product_Name'],
+                column_mapping['Cashier_ID'],
+                column_mapping['Billed_Amount'],
+                column_mapping['Paid_Amount'],
+                column_mapping['Balance_Amount'],
+                column_mapping['Tax_Amount'],
+                column_mapping['Service_Charge'],
+                column_mapping['Discount_Amount'],
+                column_mapping['Billing_Date']
+            ]].head(20)
             leakage_sample_str = leakage_sample.to_string(index=False)
             
             # Group by anomaly type and branch for root cause analysis
