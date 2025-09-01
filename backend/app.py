@@ -1,6 +1,14 @@
 import os
+import re
+import matplotlib
+# Set matplotlib backend to 'Agg' to avoid GUI warnings
+matplotlib.use('Agg')
+from dotenv import load_dotenv
 import pandas as pd
 import joblib
+
+# Load environment variables from .env file
+load_dotenv()
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -187,20 +195,80 @@ def create_telecom_visualizations(leakage_data):
 def generate_ai_recommendations(domain, leakage_data, total_leakage_inr, leakage_percentage):
     """Generate AI-powered recommendations using Gemini API with detailed, specific prompts"""
     try:
+        # Ensure leakage_data is a DataFrame
+        leakage_data = pd.DataFrame(leakage_data)
+        
         gemini_api_key = os.getenv('GEMINI_API_KEY')
         if not gemini_api_key:
-            return None
+            print("Warning: GEMINI_API_KEY not found. Using fallback recommendations.")
+            # Return domain-specific fallback recommendations
+            if domain == 'supermarket':
+                return [
+                    "Implement real-time transaction monitoring for high-value items",
+                    "Enhance staff training on proper discount application procedures",
+                    "Implement dual verification for transactions above ₹10,000",
+                    "Review and update inventory management practices",
+                    "Conduct regular cash register audits"
+                ]
+            else:  # telecom
+                return [
+                    "Implement real-time monitoring for high-value plan activations",
+                    "Enhance agent training on plan validation procedures",
+                    "Implement additional verification for high-value plan changes",
+                    "Review and update commission structures to prevent fraud",
+                    "Conduct regular audits of agent transactions"
+                ]
         
         # Configure Gemini
         genai.configure(api_key=gemini_api_key)
         model = genai.GenerativeModel('gemini-1.5-flash')
         
         if domain == 'supermarket':
-            # Prepare detailed data for supermarket analysis
-            leakage_sample = leakage_data[['Invoice_number', 'Customer_id', 'Anomaly_Type_Pred', 'Store_Branch', 
-                                         'Product_Name', 'Cashier_ID', 'Billed_Amount', 'Paid_Amount', 
-                                         'Balance_Amount', 'Tax_Amount', 'Service_Charge', 'Discount_Amount', 
-                                         'Billing_Date']].head(20)
+            # Check for required columns and provide defaults if missing
+            required_columns = {
+                'Anomaly_Type_Pred': 'Anomaly_Type_Pred',
+                'Store_Branch': 'Store_Branch',
+                'Product_Name': 'Product_Name',
+                'Cashier_ID': 'Cashier_ID',
+                'Billed_Amount': 'Billed_Amount',
+                'Paid_Amount': 'Paid_Amount',
+                'Balance_Amount': 'Balance_Amount',
+                'Tax_Amount': 'Tax_Amount',
+                'Service_Charge': 'Service_Charge',
+                'Discount_Amount': 'Discount_Amount',
+                'Billing_Date': 'Billing_Date',
+                'Invoice_number': 'Invoice_number',
+                'Customer_id': 'Customer_id'
+            }
+            
+            # Map existing columns to expected names
+            column_mapping = {}
+            for default_col, expected_col in required_columns.items():
+                # Try to find a matching column (case insensitive)
+                matching_cols = [col for col in leakage_data.columns if col.lower() == expected_col.lower()]
+                if matching_cols:
+                    column_mapping[default_col] = matching_cols[0]
+                else:
+                    # If column not found, create a dummy column
+                    leakage_data[default_col] = 'N/A'
+                    column_mapping[default_col] = default_col
+            
+            # Prepare sample data with mapped columns
+            leakage_sample = leakage_data[[
+                column_mapping['Invoice_number'],
+                column_mapping['Customer_id'],
+                column_mapping['Anomaly_Type_Pred'],
+                column_mapping['Store_Branch'],
+                column_mapping['Product_Name'],
+                column_mapping['Cashier_ID'],
+                column_mapping['Billed_Amount'],
+                column_mapping['Paid_Amount'],
+                column_mapping['Balance_Amount'],
+                column_mapping['Tax_Amount'],
+                column_mapping['Service_Charge'],
+                column_mapping['Discount_Amount'],
+                column_mapping['Billing_Date']
+            ]].head(20)
             leakage_sample_str = leakage_sample.to_string(index=False)
             
             # Group by anomaly type and branch for root cause analysis
@@ -345,34 +413,64 @@ Focus on providing specific, actionable recommendations that address the root ca
                 else:
                     raise e
         
-        if recommendations_text:
+        if not recommendations_text:
+            return None
+            
+        try:
+            # Remove any markdown formatting for headers
+            recommendations_text = recommendations_text.replace('**', '')
+            
             # Parse the response into structured recommendations
-            lines = recommendations_text.split('\n')
+            lines = [line.strip() for line in recommendations_text.split('\n') if line.strip()]
             recommendations = []
             
             for line in lines:
-                line = line.strip()
-                if line and (line.startswith(('1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.', '10.')) or 
-                           line.startswith(('•', '-', '*')) or
-                           line.startswith(('1)', '2)', '3)', '4)', '5)', '6)', '7)', '8)', '9)', '10)'))):
-                    # Clean up the recommendation text
-                    clean_rec = line.lstrip('1234567890.•-*() ').strip()
-                    if clean_rec and len(clean_rec) > 10:  # Only add meaningful recommendations
+                # Skip section headers and other non-recommendation lines
+                line_lower = line.lower()
+                if any(header in line_lower for header in ['report', 'summary', 'analysis', 'context:', 'leakage summary', 'financial analysis']):
+                    continue
+                    
+                # Handle numbered lists (e.g., "1. Text" or "1) Text")
+                if re.match(r'^\d+[.)]', line):
+                    # Remove the number and following punctuation
+                    clean_rec = re.sub(r'^\d+[.)]\s*', '', line).strip()
+                    if clean_rec and len(clean_rec) > 10:
                         recommendations.append(clean_rec)
-                elif line and len(line) > 20 and not line.startswith('Context:') and not line.startswith('Please provide:') and not line.startswith('*') and not line.startswith('Report Sections:'):
-                    # Add lines that look like recommendations but don't have bullets
+                # Handle bullet points
+                elif line.startswith(('•', '-', '*', '◦')):
+                    clean_rec = line.lstrip('•-*◦ ').strip()
+                    if clean_rec and len(clean_rec) > 10:
+                        recommendations.append(clean_rec)
+                # Add other meaningful lines that aren't too short
+                elif len(line) > 20 and not any(header in line_lower for header in ['please provide', 'report sections']):
                     recommendations.append(line)
             
-            # If we couldn't parse structured recommendations, use the full response
+            # If we couldn't parse structured recommendations, split by double newlines
             if not recommendations:
-                recommendations = [recommendations_text]
+                recommendations = [rec.strip() for rec in recommendations_text.split('\n\n') if rec.strip()]
             
-            return recommendations[:10]  # Limit to 10 recommendations
+            # Ensure we don't have any duplicates and limit to 10 recommendations
+            seen = set()
+            unique_recommendations = []
+            for rec in recommendations:
+                if rec and rec not in seen and len(rec) > 10:
+                    seen.add(rec)
+                    unique_recommendations.append(rec)
+                    if len(unique_recommendations) >= 10:
+                        break
             
-        return None
+            return unique_recommendations if unique_recommendations else None
+            
+        except Exception as e:
+            print(f"Error parsing AI recommendations: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
         
     except Exception as e:
         print(f"Error generating AI recommendations: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def create_word_document(domain, leakage_data, total_leakage_inr, leakage_percentage, report_content, visualizations_buffer):
