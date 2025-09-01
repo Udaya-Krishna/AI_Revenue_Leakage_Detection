@@ -21,13 +21,13 @@ import {
   Menu,
   X,
   Moon,
-  Sun
+  Sun,
+  Search,
+  Target
 } from 'lucide-react';
 import { useGlobalTheme } from "./GlobalThemeContext";
 
 import DevelopersSection from "./Developers/Developers";
-
-
 
 const ThemeToggle = () => {
   const { isDark, toggleTheme } = useGlobalTheme();
@@ -46,13 +46,12 @@ const ThemeToggle = () => {
   );
 };
 
-const HomePage = ({ onDomainSelect, onNavigateToDevs }) => {
+const HomePage = ({ onDomainSelect }) => {
   const { isDark } = useGlobalTheme();
   const [selectedDomain, setSelectedDomain] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeTab, setActiveTab] = useState('features');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showDevelopers, setShowDevelopers] = useState(false);
   const [counters, setCounters] = useState({
     revenue: 0,
     issues: 0,
@@ -168,7 +167,7 @@ const HomePage = ({ onDomainSelect, onNavigateToDevs }) => {
       role: 'CFO, MegaRetail Corp',
       avatar: 'SC',
       rating: 5,
-      text: 'Revenue Guard AI helped us recover $2.4M in leaked revenue within the first quarter. The accuracy is phenomenal.'
+      text: 'Revenue Leak Hunter AI helped us recover $2.4M in leaked revenue within the first quarter. The accuracy is phenomenal.'
     },
     {
       name: 'Michael Rodriguez',
@@ -191,16 +190,6 @@ const HomePage = ({ onDomainSelect, onNavigateToDevs }) => {
     if (onDomainSelect) {
       onDomainSelect(domainId);
     }
-  };
-
-  const handleNavigateToDevs = () => {
-    setShowDevelopers(true);
-    // Scroll to developers section
-    setTimeout(() => {
-      document.getElementById('developers-section')?.scrollIntoView({ 
-        behavior: 'smooth' 
-      });
-    }, 100);
   };
 
   const themeClasses = {
@@ -246,29 +235,6 @@ const HomePage = ({ onDomainSelect, onNavigateToDevs }) => {
       : 'bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]'
   };
 
-  if (showDevelopers) {
-    return (
-      <div className={themeClasses.mainBg}>
-        <ThemeToggle />
-        
-        {/* Back to Home Button */}
-        <div className="fixed top-20 left-4 z-40">
-          <button
-            onClick={() => setShowDevelopers(false)}
-            className={`flex items-center space-x-2 ${isDark ? 'bg-gray-800/90 text-cyan-400 border-gray-700' : 'bg-white/90 text-blue-600 border-gray-200'} px-4 py-2 rounded-lg border backdrop-blur-sm hover:shadow-lg transition-all`}
-          >
-            <ArrowRight className="w-4 h-4 rotate-180" />
-            <span>Back to Home</span>
-          </button>
-        </div>
-        
-        <div id="developers-section">
-          <DevelopersSection />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={themeClasses.mainBg}>
       <ThemeToggle />
@@ -279,11 +245,11 @@ const HomePage = ({ onDomainSelect, onNavigateToDevs }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className={`w-10 h-10 ${isDark ? 'bg-gradient-to-r from-cyan-400 to-blue-500' : 'bg-gradient-to-r from-blue-600 to-indigo-600'} rounded-xl flex items-center justify-center shadow-lg`}>
-                <Shield className="w-6 h-6 text-white" />
+                <Target className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className={`text-xl font-bold ${themeClasses.gradientText}`}>
-                  Revenue Guard AI
+                  Revenue Leak Hunter AI
                 </h1>
                 <p className={`text-xs ${themeClasses.mutedText}`}>Intelligent Leakage Detection</p>
               </div>
@@ -295,13 +261,10 @@ const HomePage = ({ onDomainSelect, onNavigateToDevs }) => {
               <a href="#domains" className={themeClasses.navText + ' transition-colors'}>Domains</a>
               <a href="#analytics" className={themeClasses.navText + ' transition-colors'}>Analytics</a>
               <a href="#testimonials" className={themeClasses.navText + ' transition-colors'}>Reviews</a>
-              <button 
-                onClick={handleNavigateToDevs}
-                className={themeClasses.navText + ' transition-colors flex items-center'}
-              >
+              <a href="#developers" className={themeClasses.navText + ' transition-colors flex items-center'}>
                 <Code className="w-4 h-4 mr-2" />
                 Developers
-              </button>
+              </a>
               <button 
                 onClick={() => document.getElementById('domains').scrollIntoView({ behavior: 'smooth' })}
                 className={themeClasses.navButton}
@@ -327,13 +290,10 @@ const HomePage = ({ onDomainSelect, onNavigateToDevs }) => {
                 <a href="#domains" className={themeClasses.navText + ' transition-colors'}>Domains</a>
                 <a href="#analytics" className={themeClasses.navText + ' transition-colors'}>Analytics</a>
                 <a href="#testimonials" className={themeClasses.navText + ' transition-colors'}>Reviews</a>
-                <button 
-                  onClick={handleNavigateToDevs}
-                  className={`text-left ${themeClasses.navText} transition-colors flex items-center`}
-                >
+                <a href="#developers" className={`${themeClasses.navText} transition-colors flex items-center`}>
                   <Code className="w-4 h-4 mr-2" />
                   Developers
-                </button>
+                </a>
                 <button 
                   onClick={() => {
                     document.getElementById('domains').scrollIntoView({ behavior: 'smooth' });
@@ -616,6 +576,11 @@ const HomePage = ({ onDomainSelect, onNavigateToDevs }) => {
         </div>
       </section>
 
+      {/* ========== DEVELOPERS SECTION ========== */}
+      <section id="developers">
+        <DevelopersSection />
+      </section>
+
       {/* ========== CTA SECTION ========== */}
       <section className={`py-20 ${isDark ? 'bg-gradient-to-r from-cyan-600/20 to-blue-600/20 backdrop-blur-sm border-y border-cyan-800/30' : 'bg-gradient-to-r from-blue-600 to-indigo-600'}`}>
         <div className="container mx-auto px-6 text-center">
@@ -646,9 +611,9 @@ const HomePage = ({ onDomainSelect, onNavigateToDevs }) => {
             <div>
               <div className="flex items-center space-x-3 mb-4">
                 <div className={`w-8 h-8 ${isDark ? 'bg-gradient-to-r from-cyan-400 to-blue-500' : 'bg-gradient-to-r from-blue-500 to-indigo-600'} rounded-lg flex items-center justify-center shadow-lg`}>
-                  <Shield className="w-5 h-5 text-white" />
+                  <Target className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-lg font-bold">Revenue Guard AI</span>
+                <span className="text-lg font-bold">Revenue Leak Hunter AI</span>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">
                 AI-powered revenue leakage detection for modern enterprises.
@@ -668,7 +633,7 @@ const HomePage = ({ onDomainSelect, onNavigateToDevs }) => {
               <ul className="space-y-2 text-sm text-gray-400">
                 <li><a href="#" className={`hover:${isDark ? 'text-cyan-400' : 'text-white'} transition-colors`}>About</a></li>
                 <li><a href="#" className={`hover:${isDark ? 'text-cyan-400' : 'text-white'} transition-colors`}>Careers</a></li>
-                <li><button onClick={handleNavigateToDevs} className={`hover:${isDark ? 'text-cyan-400' : 'text-white'} transition-colors text-left`}>Developers</button></li>
+                <li><a href="#developers" className={`hover:${isDark ? 'text-cyan-400' : 'text-white'} transition-colors`}>Developers</a></li>
                 <li><a href="#" className={`hover:${isDark ? 'text-cyan-400' : 'text-white'} transition-colors`}>Contact</a></li>
                 <li><a href="#" className={`hover:${isDark ? 'text-cyan-400' : 'text-white'} transition-colors`}>Blog</a></li>
               </ul>
@@ -684,7 +649,7 @@ const HomePage = ({ onDomainSelect, onNavigateToDevs }) => {
             </div>
           </div>
           <div className={`border-t ${isDark ? 'border-gray-800' : 'border-gray-700'} mt-8 pt-8 text-center text-sm text-gray-400`}>
-            <p>&copy; 2025 Revenue Guard AI. All rights reserved.</p>
+            <p>&copy; 2025 Revenue Leak Hunter AI. All rights reserved.</p>
           </div>
         </div>
       </footer>

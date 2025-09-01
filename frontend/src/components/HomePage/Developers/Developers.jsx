@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Github, 
   Linkedin, 
@@ -11,52 +11,15 @@ import {
   Shield,
   Users,
   Star,
-  Award,
-  Moon,
-  Sun
+  Award
 } from 'lucide-react';
+import { useGlobalTheme } from '../GlobalThemeContext'; // Import the global theme context
 
-// Theme Context
-const ThemeContext = createContext();
-
-const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
-};
-
-const ThemeProvider = ({ children }) => {
-  const [isDark, setIsDark] = useState(true); // Default to dark theme
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-  };
-
-  return (
-    <ThemeContext.Provider value={{ isDark, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-};
-
-const ThemeToggle = () => {
-  const { isDark, toggleTheme } = useTheme();
-  
-  return (
-    <button
-      onClick={toggleTheme}
-      className={`fixed top-4 right-4 z-50 p-3 rounded-full transition-all duration-300 shadow-lg ${
-        isDark 
-          ? 'bg-gray-800 text-yellow-400 hover:bg-gray-700 border border-gray-700' 
-          : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-      }`}
-    >
-      {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-    </button>
-  );
-};
+import GodwinImage from './dev-image/Godwin.png';
+import PoojaImage from './dev-image/Pooja.png';
+import RagulImage from './dev-image/Ragul.png';
+import AshwinImage from './dev-image/Ashwin.png';
+import UdayaImage from './dev-image/Udaya.png';
 
 // Counter Animation Hook
 const useCountAnimation = (targetValue, duration = 2000) => {
@@ -123,7 +86,7 @@ const AnimatedCounter = ({ value, suffix = "", className = "" }) => {
 };
 
 const DevelopersSection = () => {
-  const { isDark } = useTheme();
+  const { isDark } = useGlobalTheme(); // Use the global theme context
   const [hoveredCard, setHoveredCard] = useState(null);
   const [animatedCards, setAnimatedCards] = useState(new Set());
 
@@ -157,7 +120,7 @@ const DevelopersSection = () => {
       title: "Lead AI Engineer",
       subtitle: "Project Architect",
       specialization: "Machine Learning & System Architecture",
-      image: "/api/placeholder/80/80",
+      image: GodwinImage,
       email: "godwin.wilfred@revenueguard.ai",
       bio: "AI specialist with expertise in revenue leakage detection algorithms and scalable ML systems.",
       skills: ["Machine Learning", "Python", "TensorFlow", "System Design", "Data Engineering", "PyTorch"],
@@ -179,7 +142,7 @@ const DevelopersSection = () => {
       title: "Frontend Lead",
       subtitle: "UI/UX Architect", 
       specialization: "User Interface & Experience Design",
-      image: "/api/placeholder/80/80",
+      image: PoojaImage,
       email: "pooja.shree@revenueguard.ai",
       bio: "Creative frontend engineer specializing in intuitive data visualization interfaces for complex systems.",
       skills: ["React", "TypeScript", "UI/UX Design", "Data Visualization", "Tailwind CSS", "Figma"],
@@ -201,7 +164,7 @@ const DevelopersSection = () => {
       title: "Backend Engineer",
       subtitle: "Data Specialist",
       specialization: "Distributed Systems & Data Processing",
-      image: "/api/placeholder/80/80", 
+      image: RagulImage,
       email: "ragul.kb@revenueguard.ai",
       bio: "Backend architect focused on high-performance data processing and real-time analytics systems.",
       skills: ["Node.js", "Python", "PostgreSQL", "Redis", "Microservices", "Docker", "AWS"],
@@ -223,7 +186,7 @@ const DevelopersSection = () => {
       title: "DevOps Engineer",
       subtitle: "Security Specialist",
       specialization: "Cloud Infrastructure & Security",
-      image: "/api/placeholder/80/80",
+      image: AshwinImage,
       email: "ashwin@revenueguard.ai", 
       bio: "DevOps expert ensuring scalable, secure, and reliable infrastructure for AI-powered systems with advanced monitoring.",
       skills: ["AWS", "Kubernetes", "Terraform", "CI/CD", "Security", "Monitoring", "Docker"],
@@ -245,7 +208,7 @@ const DevelopersSection = () => {
       title: "Full-Stack Developer",
       subtitle: "Integration Expert",
       specialization: "API Development & System Integration",
-      image: "/api/placeholder/80/80",
+      image: UdayaImage,
       email: "udaya.krishnan@revenueguard.ai",
       bio: "Versatile developer bridging frontend and backend systems with robust API integrations.",
       skills: ["Full-Stack", "REST APIs", "GraphQL", "React", "Node.js", "MongoDB", "TypeScript"],
@@ -349,7 +312,6 @@ const DevelopersSection = () => {
 
   return (
     <section className={`py-12 md:py-20 ${themeClasses.mainBg} relative overflow-hidden`}>
-      <ThemeToggle />
       
       {/* Background Pattern */}
       <div className={`absolute inset-0 ${themeClasses.bgPattern}`}></div>
@@ -620,11 +582,4 @@ const DevelopersSection = () => {
   );
 };
 
-// Wrap the DevelopersSection with ThemeProvider
-const DevelopersSectionWithTheme = (props) => (
-  <ThemeProvider>
-    <DevelopersSection {...props} />
-  </ThemeProvider>
-);
-
-export default DevelopersSectionWithTheme;
+export default DevelopersSection;

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, BarChart3, Download, FileText, AlertTriangle, CheckCircle, Eye, TrendingUp, DollarSign, Home } from 'lucide-react';
+import { ArrowLeft, BarChart3, Download, FileText, AlertTriangle, CheckCircle, Eye, TrendingUp, DollarSign, Home, Upload } from 'lucide-react';
 import { useGlobalTheme } from '../HomePage/GlobalThemeContext';
 import { getResults, downloadFile, handleApiError } from '../../utils/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
 import StatsCard from '../common/StatsCard';
 
-const ResultsPage = ({ sessionData, onBackToHome, onVisualization }) => {
+const ResultsPage = ({ sessionData, onBackToHome, onVisualization, onAnalyzeNewDataset }) => {
   const { isDark } = useGlobalTheme();
   const [results, setResults] = useState(sessionData);
   const [loading, setLoading] = useState(!sessionData);
@@ -221,13 +221,23 @@ const ResultsPage = ({ sessionData, onBackToHome, onVisualization }) => {
               </p>
             </div>
             
-            <button
-              onClick={onBackToHome}
-              className={`flex items-center px-4 py-2 ${themeClasses.button} border rounded-lg transition-all`}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Upload New File
-            </button>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={onAnalyzeNewDataset}
+                className={`flex items-center px-4 py-2 ${themeClasses.button} border rounded-lg transition-all`}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload New File
+              </button>
+              
+              <button
+                onClick={onBackToHome}
+                className={`flex items-center px-4 py-2 ${themeClasses.button} border rounded-lg transition-all`}
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Back to Home
+              </button>
+            </div>
           </div>
         </div>
 

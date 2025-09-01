@@ -68,6 +68,7 @@ function App() {
             sessionData={sessionData}
             onBackToHome={handleBackToHome}
             onVisualization={() => handleVisualizationNavigation(sessionData)}
+            onAnalyzeNewDataset={handleAnalyzeNewDataset}
           />
         );
       case 'visualization-dashboard':
