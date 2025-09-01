@@ -73,6 +73,22 @@ const VisualizationDashboard = ({ sessionData, onBackToHome, onBackToIndex }) =>
   const createCharts = () => {
     if (!window.Chart || !chartData) return;
 
+    // Enhanced color palettes
+    const colorPalettes = {
+      primary: [
+        'rgba(71, 85, 105, 0.8)', 'rgba(239, 68, 68, 0.8)', 'rgba(16, 185, 129, 0.8)',
+        'rgba(245, 158, 11, 0.8)', 'rgba(139, 92, 246, 0.8)', 'rgba(236, 72, 153, 0.8)',
+        'rgba(6, 182, 212, 0.8)', 'rgba(34, 197, 94, 0.8)', 'rgba(251, 113, 133, 0.8)',
+        'rgba(168, 85, 247, 0.8)'
+      ],
+      borders: [
+        'rgba(71, 85, 105, 1)', 'rgba(239, 68, 68, 1)', 'rgba(16, 185, 129, 1)',
+        'rgba(245, 158, 11, 1)', 'rgba(139, 92, 246, 1)', 'rgba(236, 72, 153, 1)',
+        'rgba(6, 182, 212, 1)', 'rgba(34, 197, 94, 1)', 'rgba(251, 113, 133, 1)',
+        'rgba(168, 85, 247, 1)'
+      ]
+    };
+
     try {
       // Create charts based on the chartData
       chartData.charts.forEach((chartInfo, index) => {
@@ -84,112 +100,164 @@ const VisualizationDashboard = ({ sessionData, onBackToHome, onBackToIndex }) =>
         
         const ctx = canvas.getContext('2d');
         
-        // Create chart based on type
-        switch (chartInfo.type) {
-          case 'pie':
-            new window.Chart(ctx, {
-              type: 'pie',
-              data: {
-                labels: Object.keys(chartInfo.data),
-                datasets: [{
-                  data: Object.values(chartInfo.data),
-                  backgroundColor: [
-                    'rgba(59, 130, 246, 0.8)',
-                    'rgba(239, 68, 68, 0.8)',
-                    'rgba(16, 185, 129, 0.8)',
-                    'rgba(245, 158, 11, 0.8)',
-                    'rgba(139, 92, 246, 0.8)'
-                  ],
-                  borderColor: [
-                    'rgba(59, 130, 246, 1)',
-                    'rgba(239, 68, 68, 1)',
-                    'rgba(16, 185, 129, 1)',
-                    'rgba(245, 158, 11, 1)',
-                    'rgba(139, 92, 246, 1)'
-                  ],
-                  borderWidth: 2
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  title: {
-                    display: true,
-                    text: chartInfo.title,
-                    font: { size: 16, weight: 'bold' },
-                    color: isDark ? '#ffffff' : '#1f2937'
-                  },
-                  legend: {
-                    position: 'bottom',
-                    labels: {
-                      padding: 20,
-                      usePointStyle: true,
-                      color: isDark ? '#ffffff' : '#1f2937'
-                    }
-                  }
-                }
-              }
-            });
-            break;
-            
-          case 'bar':
-            new window.Chart(ctx, {
-              type: 'bar',
-              data: {
-                labels: Object.keys(chartInfo.data),
-                datasets: [{
-                  label: 'Count',
-                  data: Object.values(chartInfo.data),
-                  backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                  borderColor: 'rgba(59, 130, 246, 1)',
-                  borderWidth: 2,
-                  borderRadius: 8
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  title: {
-                    display: true,
-                    text: chartInfo.title,
-                    font: { size: 16, weight: 'bold' },
-                    color: isDark ? '#ffffff' : '#1f2937'
-                  },
-                  legend: {
-                    display: false
-                  }
+        const labels = Object.keys(chartInfo.data);
+        const values = Object.values(chartInfo.data);
+
+        let chartConfig = {
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Count',
+              data: values,
+              backgroundColor: colorPalettes.primary.slice(0, labels.length),
+              borderColor: colorPalettes.borders.slice(0, labels.length),
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: {
+                display: true,
+                text: chartInfo.title,
+                font: {
+                  size: 16,
+                  weight: 'bold'
                 },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    ticks: {
-                      precision: 0,
-                      color: isDark ? '#ffffff' : '#1f2937'
-                    },
-                    grid: {
-                      color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-                    }
-                  },
-                  x: {
-                    ticks: {
-                      color: isDark ? '#ffffff' : '#1f2937',
-                      maxRotation: 45
-                    },
-                    grid: {
-                      display: false
-                    }
-                  }
+                padding: {
+                  top: 10,
+                  bottom: 20
+                },
+                color: isDark ? '#ffffff' : '#1e293b'
+              },
+              legend: {
+                display: ['pie', 'doughnut', 'polarArea'].includes(chartInfo.type),
+                position: 'bottom',
+                labels: {
+                  padding: 15,
+                  usePointStyle: true,
+                  color: isDark ? '#ffffff' : '#1e293b'
                 }
               }
-            });
+            },
+            animation: {
+              duration: 1500,
+              easing: 'easeInOutQuart'
+            }
+          }
+        };
+
+        // Chart type specific configurations
+        switch (chartInfo.type) {
+          case 'line':
+            chartConfig.type = 'line';
+            chartConfig.data.datasets[0].fill = true;
+            chartConfig.data.datasets[0].backgroundColor = 'rgba(71, 85, 105, 0.1)';
+            chartConfig.data.datasets[0].borderColor = 'rgba(71, 85, 105, 1)';
+            chartConfig.data.datasets[0].tension = 0.4;
+            chartConfig.options.scales = {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  precision: 0,
+                  color: isDark ? '#ffffff' : '#1e293b'
+                },
+                grid: {
+                  color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  color: isDark ? '#ffffff' : '#1e293b'
+                }
+              }
+            };
             break;
-            
-          // Add more chart types as needed
+
+          case 'horizontalBar':
+            chartConfig.type = 'bar';
+            chartConfig.options.indexAxis = 'y';
+            chartConfig.options.scales = {
+              x: {
+                beginAtZero: true,
+                ticks: {
+                  precision: 0,
+                  color: isDark ? '#ffffff' : '#1e293b'
+                },
+                grid: {
+                  color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                }
+              },
+              y: {
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  color: isDark ? '#ffffff' : '#1e293b'
+                }
+              }
+            };
+            break;
+
+          case 'pie':
+            chartConfig.type = 'pie';
+            chartConfig.data.datasets[0].borderWidth = 3;
+            break;
+
+          case 'doughnut':
+            chartConfig.type = 'doughnut';
+            chartConfig.data.datasets[0].borderWidth = 3;
+            chartConfig.options.cutout = '60%';
+            break;
+
+          case 'polarArea':
+            chartConfig.type = 'polarArea';
+            chartConfig.data.datasets[0].borderWidth = 2;
+            chartConfig.options.scales = {
+              r: {
+                beginAtZero: true,
+                ticks: {
+                  precision: 0,
+                  color: isDark ? '#ffffff' : '#1e293b'
+                },
+                grid: {
+                  color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                }
+              }
+            };
+            break;
+
+          case 'bar':
           default:
-            console.log(`Unsupported chart type: ${chartInfo.type}`);
+            chartConfig.type = 'bar';
+            chartConfig.options.scales = {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  precision: 0,
+                  color: isDark ? '#ffffff' : '#1e293b'
+                },
+                grid: {
+                  color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  color: isDark ? '#ffffff' : '#1e293b'
+                }
+              }
+            };
+            break;
         }
+
+        new window.Chart(ctx, chartConfig);
       });
 
     } catch (err) {
@@ -199,9 +267,22 @@ const VisualizationDashboard = ({ sessionData, onBackToHome, onBackToIndex }) =>
 
   const refreshCharts = () => {
     chartsInitialized.current = false;
+    // Destroy existing charts before recreating
+    chartData?.charts.forEach((chartInfo, index) => {
+      const canvas = document.getElementById(`chart-${index}`);
+      if (canvas) {
+        const existingChart = window.Chart.getChart(canvas);
+        if (existingChart) {
+          existingChart.destroy();
+        }
+      }
+    });
+    
     if (chartData && chartsReady) {
-      createCharts();
-      chartsInitialized.current = true;
+      setTimeout(() => {
+        createCharts();
+        chartsInitialized.current = true;
+      }, 100);
     }
   };
 
@@ -326,23 +407,40 @@ const VisualizationDashboard = ({ sessionData, onBackToHome, onBackToIndex }) =>
         </div>
       )}
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {chartData?.charts.map((chartInfo, index) => (
-          <div key={index} className={`${themeClasses.cardBg} ${themeClasses.cardBorder} rounded-xl p-6 transition-all hover:shadow-xl`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-bold ${themeClasses.primaryText}`}>
-                {chartInfo.title}
-              </h3>
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded capitalize">
-                {chartInfo.type}
-              </span>
+      {/* Charts Grid - Display ALL charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-8">
+        {chartData?.charts.map((chartInfo, index) => {
+          if (chartInfo.error) {
+            return (
+              <div key={index} className={`${themeClasses.cardBg} ${themeClasses.cardBorder} rounded-xl p-6 transition-all`}>
+                <div className="text-center text-red-500">
+                  <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
+                  <p>{chartInfo.error}</p>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div key={index} className={`${themeClasses.cardBg} ${themeClasses.cardBorder} rounded-xl p-6 transition-all hover:shadow-xl transform hover:-translate-y-1`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-bold ${themeClasses.primaryText}`}>
+                  {chartInfo.title}
+                </h3>
+                <span className={`text-xs px-2 py-1 rounded capitalize ${
+                  isDark 
+                    ? 'bg-gray-700 text-gray-300' 
+                    : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {chartInfo.type}
+                </span>
+              </div>
+              <div className="h-80 w-full">
+                <canvas id={`chart-${index}`}></canvas>
+              </div>
             </div>
-            <div className="h-80 w-full">
-              <canvas id={`chart-${index}`}></canvas>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Footer */}
