@@ -6,7 +6,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
 import StatsCard from '../common/StatsCard';
 
-const VisualizationDashboard = ({ sessionData, onBackToHome, onBackToIndex }) => {
+const VisualizationDashboard = ({ sessionData, onBackToHome, onBackToResults }) => {
   const { isDark } = useGlobalTheme();
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -358,7 +358,7 @@ const VisualizationDashboard = ({ sessionData, onBackToHome, onBackToIndex }) =>
               </button>
               
               <button 
-                onClick={onBackToIndex}
+                onClick={onBackToResults}
                 className={`flex items-center px-4 py-2 ${themeClasses.button} border rounded-lg transition-all`}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
