@@ -19,6 +19,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.style import WD_STYLE_TYPE
 import io
 import base64
+import time
 from datetime import datetime
 
 # Add the report_generation directory to the path
@@ -183,6 +184,197 @@ def create_telecom_visualizations(leakage_data):
         print(f"Error creating telecom visualizations: {e}")
         return None
 
+def generate_ai_recommendations(domain, leakage_data, total_leakage_inr, leakage_percentage):
+    """Generate AI-powered recommendations using Gemini API with detailed, specific prompts"""
+    try:
+        gemini_api_key = os.getenv('GEMINI_API_KEY')
+        if not gemini_api_key:
+            return None
+        
+        # Configure Gemini
+        genai.configure(api_key=gemini_api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        if domain == 'supermarket':
+            # Prepare detailed data for supermarket analysis
+            leakage_sample = leakage_data[['Invoice_number', 'Customer_id', 'Anomaly_Type_Pred', 'Store_Branch', 
+                                         'Product_Name', 'Cashier_ID', 'Billed_Amount', 'Paid_Amount', 
+                                         'Balance_Amount', 'Tax_Amount', 'Service_Charge', 'Discount_Amount', 
+                                         'Billing_Date']].head(20)
+            leakage_sample_str = leakage_sample.to_string(index=False)
+            
+            # Group by anomaly type and branch for root cause analysis
+            grouped_by_anomaly_branch = leakage_data.groupby(['Anomaly_Type_Pred', 'Store_Branch'])['Balance_Amount'].sum().reset_index()
+            grouped_by_anomaly_branch['Balance_Amount_INR'] = grouped_by_anomaly_branch['Balance_Amount'] * 87.79
+            grouped_by_anomaly_branch_str = grouped_by_anomaly_branch[['Anomaly_Type_Pred', 'Store_Branch', 'Balance_Amount_INR']].to_string(index=False)
+            
+            # Get top contributors to leakage
+            top_products = leakage_data['Product_Name'].value_counts().head(5).to_string() if 'Product_Name' in leakage_data.columns else "N/A"
+            top_cashiers = leakage_data['Cashier_ID'].value_counts().head(5).to_string() if 'Cashier_ID' in leakage_data.columns else "N/A"
+            
+            # Calculate detailed financial metrics
+            total_tax_leakage_inr = leakage_data['Tax_Amount'].sum() * 87.79 if 'Tax_Amount' in leakage_data.columns else 0
+            total_service_charge_leakage_inr = leakage_data['Service_Charge'].sum() * 87.79 if 'Service_Charge' in leakage_data.columns else 0
+            total_discount_leakage_inr = leakage_data['Discount_Amount'].sum() * 87.79 if 'Discount_Amount' in leakage_data.columns else 0
+            
+            mean_balance_inr = leakage_data['Balance_Amount'].mean() * 87.79
+            median_balance_inr = leakage_data['Balance_Amount'].median() * 87.79
+            std_dev_balance_inr = leakage_data['Balance_Amount'].std() * 87.79
+            
+            # Get unique leakage dates
+            unique_leakage_dates = leakage_data['Billing_Date'].unique() if 'Billing_Date' in leakage_data.columns else []
+            formatted_dates = ", ".join([str(date) for date in unique_leakage_dates[:10]])  # Limit to first 10 dates
+            
+            prompt_text = f"""
+Perform a comprehensive root cause analysis on the provided supermarket revenue leakage data and create a detailed report with specific, actionable recommendations. All financial amounts should be in Indian Rupees (INR).
+
+*Report Sections:*
+- *Leakage Summary*: Identify the main reasons ('Anomaly_Type_Pred'), locations ('Store_Branch'), and dates of leakage.
+- *Root Cause Analysis*: Use the provided grouped data to analyze the root causes of the leakage. Identify which specific anomaly types are most prevalent in which branches. Analyze the top products and cashiers contributing to the leakage to determine if there are specific operational or training issues.
+- *Financial Analysis*: Detail the total leaked revenue, leakage percentage, and analyze the specific contributions of taxes, service charges, and discounts to the leakage.
+- *Statistical Breakdown*: Include an analysis of the mean, median, and standard deviation of the leaked balance amounts.
+- *Actionable Recommendations*: Provide 7-10 specific, actionable steps to address the identified root causes. Each recommendation should be concrete and measurable.
+
+*Data Snapshot:*
+- Unique Leakage Dates: {formatted_dates}
+- Sample Data:
+{leakage_sample_str}
+
+*Root Cause Data (in INR):*
+- Total Leakage by Anomaly Type and Branch:
+{grouped_by_anomaly_branch_str}
+- Top 5 Products with Leakage:
+{top_products}
+- Top 5 Cashiers with Leakage:
+{top_cashiers}
+
+*Key Metrics (in INR):*
+- Total Revenue Leaked: ₹{total_leakage_inr:.2f}
+- Leakage Percentage: {leakage_percentage:.2f}%
+- Total Tax Leakage: ₹{total_tax_leakage_inr:.2f}
+- Total Service Charge Leakage: ₹{total_service_charge_leakage_inr:.2f}
+- Total Discount Leakage: ₹{total_discount_leakage_inr:.2f}
+
+*Statistical Metrics (Balance Amount) in INR:*
+- Mean: ₹{mean_balance_inr:.2f}
+- Median: ₹{median_balance_inr:.2f}
+- Standard Deviation: ₹{std_dev_balance_inr:.2f}
+
+Focus on providing specific, actionable recommendations that address the root causes identified in the data analysis. Each recommendation should be concrete, measurable, and tailored to the specific patterns shown in the data.
+"""
+            
+        else:  # telecom
+            # Prepare detailed data for telecom analysis
+            leakage_sample = leakage_data[['Invoice_number', 'Customer_id', 'Anomaly_type', 'Zone_area',
+                                         'Plan_name', 'Plan_category', 'Billed_amount', 'Paid_amount',
+                                         'Balance_amount', 'Tax_amount', 'Transaction_type', 'Mode_of_payment',
+                                         'Data_bought', 'Data_used']].head(20)
+            leakage_sample_str = leakage_sample.to_string(index=False)
+            
+            # Group by anomaly type and zone for root cause analysis
+            grouped_by_anomaly_zone = leakage_data.groupby(['Anomaly_type', 'Zone_area'])['Balance_amount'].sum().reset_index()
+            grouped_by_anomaly_zone['Balance_amount_INR'] = grouped_by_anomaly_zone['Balance_amount'] * 87.79
+            grouped_by_anomaly_zone_str = grouped_by_anomaly_zone[['Anomaly_type', 'Zone_area', 'Balance_amount_INR']].to_string(index=False)
+            
+            # Get top contributors to leakage
+            top_plans = leakage_data['Plan_name'].value_counts().head(5).to_string() if 'Plan_name' in leakage_data.columns else "N/A"
+            top_agents = leakage_data['Agent_id'].value_counts().head(5).to_string() if 'Agent_id' in leakage_data.columns else "N/A"
+            
+            # Calculate detailed financial metrics
+            total_tax_leakage_inr = leakage_data['Tax_amount'].sum() * 87.79 if 'Tax_amount' in leakage_data.columns else 0
+            
+            mean_balance_inr = leakage_data['Balance_amount'].mean() * 87.79
+            median_balance_inr = leakage_data['Balance_amount'].median() * 87.79
+            std_dev_balance_inr = leakage_data['Balance_amount'].std() * 87.79
+            
+            # Get unique leakage dates
+            unique_leakage_dates = leakage_data['Billing_Date'].unique() if 'Billing_Date' in leakage_data.columns else []
+            formatted_dates = ", ".join([str(date) for date in unique_leakage_dates[:10]])  # Limit to first 10 dates
+            
+            prompt_text = f"""
+Perform a comprehensive root cause analysis on the provided telecom revenue leakage data and create a detailed report with specific, actionable recommendations. All financial amounts should be in Indian Rupees (INR).
+
+Report Sections:
+- Leakage Summary: Identify the main reasons ('Anomaly_type'), locations ('Zone_area'), and dates of leakage.
+- Root Cause Analysis: Use the provided grouped data to analyze the root causes of the leakage. Identify which specific anomaly types are most prevalent in which zones. Analyze the top plans and agents contributing to the leakage to determine if there are specific operational or training issues.
+- Financial Analysis: Detail the total leaked revenue, leakage percentage, and analyze the specific contribution of taxes to the leakage.
+- Statistical Breakdown: Include an analysis of the mean, median, and standard deviation of the leaked balance amounts.
+- Actionable Recommendations: Provide 7-10 specific, actionable steps to address the identified root causes. Each recommendation should be concrete and measurable.
+
+Data Snapshot:
+- Unique Leakage Dates: {formatted_dates}
+- Sample Data:
+{leakage_sample_str}
+
+Root Cause Data (in INR):
+- Total Leakage by Anomaly Type and Zone:
+{grouped_by_anomaly_zone_str}
+- Top 5 Plans with Leakage:
+{top_plans}
+- Top 5 Agents with Leakage:
+{top_agents}
+
+Key Metrics (in INR):
+- Total Revenue Leaked: ₹{total_leakage_inr:.2f}
+- Leakage Percentage: {leakage_percentage:.2f}%
+- Total Tax Leakage: ₹{total_tax_leakage_inr:.2f}
+
+Statistical Metrics (Balance Amount) in INR:
+- Mean: ₹{mean_balance_inr:.2f}
+- Median: ₹{median_balance_inr:.2f}
+- Standard Deviation: ₹{std_dev_balance_inr:.2f}
+
+Focus on providing specific, actionable recommendations that address the root causes identified in the data analysis. Each recommendation should be concrete, measurable, and tailored to the specific patterns shown in the data.
+"""
+        
+        # Generate recommendations using Gemini with retry logic
+        max_retries = 3
+        delay = 2
+        recommendations_text = ""
+        
+        for i in range(max_retries):
+            try:
+                response = model.generate_content(prompt_text)
+                recommendations_text = response.text
+                break
+            except Exception as e:
+                if '429' in str(e) and i < max_retries - 1:
+                    print(f"Quota exceeded, retrying in {delay} seconds...")
+                    time.sleep(delay)
+                    delay *= 2
+                else:
+                    raise e
+        
+        if recommendations_text:
+            # Parse the response into structured recommendations
+            lines = recommendations_text.split('\n')
+            recommendations = []
+            
+            for line in lines:
+                line = line.strip()
+                if line and (line.startswith(('1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.', '9.', '10.')) or 
+                           line.startswith(('•', '-', '*')) or
+                           line.startswith(('1)', '2)', '3)', '4)', '5)', '6)', '7)', '8)', '9)', '10)'))):
+                    # Clean up the recommendation text
+                    clean_rec = line.lstrip('1234567890.•-*() ').strip()
+                    if clean_rec and len(clean_rec) > 10:  # Only add meaningful recommendations
+                        recommendations.append(clean_rec)
+                elif line and len(line) > 20 and not line.startswith('Context:') and not line.startswith('Please provide:') and not line.startswith('*') and not line.startswith('Report Sections:'):
+                    # Add lines that look like recommendations but don't have bullets
+                    recommendations.append(line)
+            
+            # If we couldn't parse structured recommendations, use the full response
+            if not recommendations:
+                recommendations = [recommendations_text]
+            
+            return recommendations[:10]  # Limit to 10 recommendations
+            
+        return None
+        
+    except Exception as e:
+        print(f"Error generating AI recommendations: {e}")
+        return None
+
 def create_word_document(domain, leakage_data, total_leakage_inr, leakage_percentage, report_content, visualizations_buffer):
     """Create a Word document with the report and visualizations"""
     try:
@@ -260,20 +452,46 @@ def create_word_document(domain, leakage_data, total_leakage_inr, leakage_percen
                     doc.add_paragraph(f'• {branch}: {count} occurrences', style='List Bullet')
                 doc.add_paragraph('')
         
-        # Add recommendations
-        doc.add_heading('Recommendations', level=1)
-        recommendations = [
-            'Investigate the most common anomaly types to identify root causes',
-            'Review processes at branches/zones with high leakage rates',
-            'Implement additional validation checks for high-risk transactions',
-            'Provide training to staff on identified leakage patterns',
-            'Establish regular monitoring and reporting procedures',
-            'Consider implementing automated fraud detection systems',
-            'Review and update billing and payment processes'
-        ]
+        # Add AI-generated recommendations
+        doc.add_heading('AI-Generated Recommendations', level=1)
+        doc.add_paragraph('The following recommendations are generated using advanced AI analysis of your specific data patterns:')
+        doc.add_paragraph('')
         
-        for rec in recommendations:
-            doc.add_paragraph(rec, style='List Bullet')
+        # Try to generate AI recommendations
+        ai_recommendations = generate_ai_recommendations(domain, leakage_data, total_leakage_inr, leakage_percentage)
+        
+        if ai_recommendations:
+            for i, rec in enumerate(ai_recommendations, 1):
+                doc.add_paragraph(f'{i}. {rec}', style='List Number')
+            doc.add_paragraph('')
+            doc.add_paragraph('💡 These AI-generated recommendations are based on analysis of your specific data patterns and industry best practices.')
+        else:
+            # Fallback to domain-specific generic recommendations
+            if domain == 'supermarket':
+                fallback_recommendations = [
+                    'Implement real-time transaction monitoring at high-risk branches',
+                    'Establish automated fraud detection for unusual payment patterns',
+                    'Provide targeted training to staff at branches with high leakage rates',
+                    'Review and update billing validation processes',
+                    'Implement customer verification for high-value transactions',
+                    'Establish regular audit procedures for suspicious transactions',
+                    'Consider implementing blockchain-based payment verification'
+                ]
+            else:  # telecom
+                fallback_recommendations = [
+                    'Implement real-time billing monitoring for high-risk zones',
+                    'Establish automated fraud detection for unusual usage patterns',
+                    'Provide targeted training to agents in zones with high leakage rates',
+                    'Review and update plan validation processes',
+                    'Implement customer verification for high-value plans',
+                    'Establish regular audit procedures for suspicious transactions',
+                    'Consider implementing AI-powered usage pattern analysis'
+                ]
+            
+            for i, rec in enumerate(fallback_recommendations, 1):
+                doc.add_paragraph(f'{i}. {rec}', style='List Number')
+            doc.add_paragraph('')
+            doc.add_paragraph('💡 These recommendations are based on industry best practices. For AI-generated insights, please ensure your GEMINI_API_KEY is configured.')
         
         doc.add_paragraph('')
         doc.add_paragraph('This report was generated automatically by the AI Revenue Leakage Detection System.')
@@ -1417,6 +1635,84 @@ def test_visualizations():
         
     except Exception as e:
         return jsonify({'success': False, 'error': f'Error testing visualizations: {str(e)}'}), 500
+
+# Test AI recommendations endpoint
+@app.route('/api/test-ai-recommendations', methods=['GET'])
+def test_ai_recommendations():
+    """Test endpoint to generate AI recommendations for both domains"""
+    try:
+        results = {}
+        
+        # Test supermarket AI recommendations
+        supermarket_anomaly_path = "model/super_market/output_datasets/anomaly_data.csv"
+        if os.path.exists(supermarket_anomaly_path):
+            try:
+                leakage_data = pd.read_csv(supermarket_anomaly_path)
+                total_leakage_inr = leakage_data['Balance_Amount'].sum() * 87.79
+                total_records = len(leakage_data)
+                leakage_percentage = (len(leakage_data) / total_records * 100) if total_records > 0 else 0
+                
+                ai_recommendations = generate_ai_recommendations('supermarket', leakage_data, total_leakage_inr, leakage_percentage)
+                
+                if ai_recommendations:
+                    results['supermarket'] = {
+                        'success': True,
+                        'record_count': len(leakage_data),
+                        'total_leakage_inr': total_leakage_inr,
+                        'leakage_percentage': leakage_percentage,
+                        'ai_recommendations': ai_recommendations,
+                        'recommendation_count': len(ai_recommendations)
+                    }
+                else:
+                    results['supermarket'] = {
+                        'success': False, 
+                        'error': 'AI recommendations generation failed or GEMINI_API_KEY not configured',
+                        'record_count': len(leakage_data)
+                    }
+            except Exception as e:
+                results['supermarket'] = {'success': False, 'error': str(e)}
+        else:
+            results['supermarket'] = {'success': False, 'error': 'Data file not found'}
+        
+        # Test telecom AI recommendations
+        telecom_anomaly_path = "model/Telecom/output_dataset/telecom_anomaly_data.csv"
+        if os.path.exists(telecom_anomaly_path):
+            try:
+                leakage_data = pd.read_csv(telecom_anomaly_path)
+                total_leakage_inr = leakage_data['Balance_amount'].sum() * 87.79
+                total_records = len(leakage_data)
+                leakage_percentage = (len(leakage_data) / total_records * 100) if total_records > 0 else 0
+                
+                ai_recommendations = generate_ai_recommendations('telecom', leakage_data, total_leakage_inr, leakage_percentage)
+                
+                if ai_recommendations:
+                    results['telecom'] = {
+                        'success': True,
+                        'record_count': len(leakage_data),
+                        'total_leakage_inr': total_leakage_inr,
+                        'leakage_percentage': leakage_percentage,
+                        'ai_recommendations': ai_recommendations,
+                        'recommendation_count': len(ai_recommendations)
+                    }
+                else:
+                    results['telecom'] = {
+                        'success': False, 
+                        'error': 'AI recommendations generation failed or GEMINI_API_KEY not configured',
+                        'record_count': len(leakage_data)
+                    }
+            except Exception as e:
+                results['telecom'] = {'success': False, 'error': str(e)}
+        else:
+            results['telecom'] = {'success': False, 'error': 'Data file not found'}
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'note': 'Set GEMINI_API_KEY environment variable to enable AI-generated recommendations'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Error testing AI recommendations: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
