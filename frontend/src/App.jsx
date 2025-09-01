@@ -3,7 +3,6 @@ import { GlobalThemeProvider } from './components/HomePage/GlobalThemeContext';
 import HomePage from './components/HomePage/HomePage';
 import Telecommunication from './components/Telecommunication/Telecommunication';
 import SuperMarket from './components/Super_market/Super_market';
-import VisualizationIndex from './components/Visualization/VisualizationIndex';
 import VisualizationDashboard from './components/Visualization/VisualizationDashboard';
 import ResultsPage from './components/Results/ResultsPage';
 
@@ -25,13 +24,26 @@ function App() {
     setCurrentPage('results');
   };
 
-  const handleVisualizationNavigation = (type, data = null) => {
+  const handleVisualizationNavigation = (data = null) => {
     setSessionData(data);
-    if (type === 'index') {
-      setCurrentPage('visualization-index');
-    } else if (type === 'dashboard') {
-      setCurrentPage('visualization-dashboard');
+    setCurrentPage('visualization-dashboard');
+  };
+
+  const handleBackToResults = () => {
+    setCurrentPage('results');
+  };
+
+  const handleAnalyzeNewDataset = () => {
+    // Determine which domain page to go to based on sessionData
+    if (sessionData?.domain === 'telecom') {
+      setCurrentPage('telecom');
+    } else if (sessionData?.domain === 'supermarket') {
+      setCurrentPage('supermarket');
+    } else {
+      // Default to home if domain is unknown
+      setCurrentPage('home');
     }
+    setSessionData(null); // Clear session data for new analysis
   };
 
   const renderCurrentPage = () => {
@@ -55,14 +67,7 @@ function App() {
           <ResultsPage 
             sessionData={sessionData}
             onBackToHome={handleBackToHome}
-            onVisualization={() => handleVisualizationNavigation('dashboard', sessionData)}
-          />
-        );
-      case 'visualization-index':
-        return (
-          <VisualizationIndex 
-            onBackToHome={handleBackToHome}
-            onDashboard={(data) => handleVisualizationNavigation('dashboard', data)}
+            onVisualization={() => handleVisualizationNavigation(sessionData)}
           />
         );
       case 'visualization-dashboard':
@@ -70,7 +75,8 @@ function App() {
           <VisualizationDashboard 
             sessionData={sessionData}
             onBackToHome={handleBackToHome}
-            onBackToIndex={() => handleVisualizationNavigation('index')}
+            onBackToResults={handleBackToResults}
+            onAnalyzeNewDataset={handleAnalyzeNewDataset}
           />
         );
       case 'home':
@@ -78,7 +84,6 @@ function App() {
         return (
           <HomePage 
             onDomainSelect={handleDomainSelect}
-            onVisualization={() => handleVisualizationNavigation('index')}
           />
         );
     }
