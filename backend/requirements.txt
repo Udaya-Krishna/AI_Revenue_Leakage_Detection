@@ -1,16 +1,22 @@
+# Core dependencies with pre-built wheels
 Flask==3.0.0
 flask-cors==4.0.0
-pandas==2.1.4
-scikit-learn==1.5.1
-xgboost==2.0.3
-joblib==1.3.2
-plotly==5.17.0
-Werkzeug==3.0.1
-numpy>=1.26.0
-scipy>=1.6.0
-uuid
-google-generativeai>=0.3.0
-python-docx>=0.8.11
-matplotlib>=3.5.0
-seaborn>=0.11.0
+pandas>=2.2.3
+scikit-learn>=1.5.0
+xgboost>=2.0.3
+joblib>=1.3.2
+plotly>=5.17.0
+Werkzeug>=3.0.1
+numpy>=2.0.0
+scipy>=1.11.4
+
+# Additional dependencies
+google-generativeai>=0.3.2
+python-docx>=1.0.1
+matplotlib>=3.8.2
+seaborn>=0.13.2
+python-dateutil>=2.8.2
+pytz>=2023.3.post1
+six>=1.16.0
+python-dotenv>=1.0.0
 requests>=2.31.0
