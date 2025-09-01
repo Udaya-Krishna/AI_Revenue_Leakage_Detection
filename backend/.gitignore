@@ -72,3 +72,10 @@ dataset/
 # OS files
 .DS_Store
 Thumbs.db
+
+
+
+uploads/
+outputs/
+backend/uploads/
+backend/outputs/
