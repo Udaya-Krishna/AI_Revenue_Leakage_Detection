@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 *.env
 *.json
+!/package.json
 node_modules/
 venv/
 venv/
