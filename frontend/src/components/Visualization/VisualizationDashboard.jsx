@@ -6,7 +6,7 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
 import StatsCard from '../common/StatsCard';
 
-const VisualizationDashboard = ({ sessionData, onBackToHome, onBackToResults }) => {
+const VisualizationDashboard = ({ sessionData, onBackToHome, onBackToResults, onAnalyzeNewDataset }) => {
   const { isDark } = useGlobalTheme();
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -362,7 +362,7 @@ const VisualizationDashboard = ({ sessionData, onBackToHome, onBackToResults }) 
                 className={`flex items-center px-4 py-2 ${themeClasses.button} border rounded-lg transition-all`}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Selection
+                Back to Results
               </button>
             </div>
           </div>
@@ -445,13 +445,21 @@ const VisualizationDashboard = ({ sessionData, onBackToHome, onBackToResults }) 
 
       {/* Footer */}
       <div className="text-center mt-8">
-        <button
-          onClick={onBackToHome}
-          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 inline-flex items-center"
-        >
-          <ArrowLeft className="h-5 w-5 mr-2" />
-          Back to Home
-        </button>
+        <div className="flex justify-center space-x-4">
+          <button
+            onClick={onAnalyzeNewDataset}
+            className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+          >
+            Analyze New Dataset
+          </button>
+          <button
+            onClick={onBackToHome}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 inline-flex items-center"
+          >
+            <ArrowLeft className="h-5 w-5 mr-2" />
+            Back to Home
+          </button>
+        </div>
       </div>
     </div>
   );
