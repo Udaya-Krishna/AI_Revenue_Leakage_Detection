@@ -11,6 +11,15 @@ import uuid
 import numpy as np
 import google.generativeai as genai
 import sys
+import matplotlib.pyplot as plt
+import seaborn as sns
+from docx import Document
+from docx.shared import Inches
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.style import WD_STYLE_TYPE
+import io
+import base64
+from datetime import datetime
 
 # Add the report_generation directory to the path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'report_generation'))
@@ -53,6 +62,232 @@ This report was generated automatically by the AI Revenue Leakage Detection Syst
         
     except Exception as e:
         return f"Error generating basic report: {str(e)}"
+
+def create_supermarket_visualizations(leakage_data):
+    """Create visualizations for supermarket data"""
+    try:
+        # Set style for plots
+        plt.style.use('default')
+        sns.set_palette("husl")
+        
+        # Create figure with subplots
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        fig.suptitle('Supermarket Revenue Leakage Analysis', fontsize=16, fontweight='bold')
+        
+        # 1. Anomaly Types Distribution
+        if 'Anomaly_Type_Pred' in leakage_data.columns:
+            anomaly_counts = leakage_data['Anomaly_Type_Pred'].value_counts()
+            axes[0, 0].pie(anomaly_counts.values, labels=anomaly_counts.index, autopct='%1.1f%%', startangle=90)
+            axes[0, 0].set_title('Distribution of Anomaly Types')
+        
+        # 2. Store Branch Analysis
+        if 'Store_Branch' in leakage_data.columns:
+            top_branches = leakage_data['Store_Branch'].value_counts().head(10)
+            axes[0, 1].barh(range(len(top_branches)), top_branches.values)
+            axes[0, 1].set_yticks(range(len(top_branches)))
+            axes[0, 1].set_yticklabels(top_branches.index)
+            axes[0, 1].set_title('Top 10 Branches with Leakages')
+            axes[0, 1].set_xlabel('Number of Leakages')
+        
+        # 3. Balance Amount Distribution
+        if 'Balance_Amount' in leakage_data.columns:
+            axes[1, 0].hist(leakage_data['Balance_Amount'], bins=20, alpha=0.7, color='red', edgecolor='black')
+            axes[1, 0].set_title('Distribution of Leakage Amounts')
+            axes[1, 0].set_xlabel('Balance Amount ($)')
+            axes[1, 0].set_ylabel('Frequency')
+        
+        # 4. Monthly Trend (if date column exists)
+        if 'Billing_Date' in leakage_data.columns:
+            try:
+                leakage_data['Billing_Date'] = pd.to_datetime(leakage_data['Billing_Date'])
+                monthly_leakages = leakage_data.groupby(leakage_data['Billing_Date'].dt.to_period('M')).size()
+                axes[1, 1].plot(range(len(monthly_leakages)), monthly_leakages.values, marker='o', linewidth=2)
+                axes[1, 1].set_title('Monthly Leakage Trend')
+                axes[1, 1].set_xlabel('Month')
+                axes[1, 1].set_ylabel('Number of Leakages')
+                axes[1, 1].tick_params(axis='x', rotation=45)
+            except:
+                # If date parsing fails, show a different chart
+                axes[1, 1].text(0.5, 0.5, 'Date analysis not available', ha='center', va='center', transform=axes[1, 1].transAxes)
+                axes[1, 1].set_title('Date Analysis')
+        
+        plt.tight_layout()
+        
+        # Save to bytes buffer
+        img_buffer = io.BytesIO()
+        plt.savefig(img_buffer, format='png', dpi=300, bbox_inches='tight')
+        img_buffer.seek(0)
+        plt.close()
+        
+        return img_buffer
+        
+    except Exception as e:
+        print(f"Error creating supermarket visualizations: {e}")
+        return None
+
+def create_telecom_visualizations(leakage_data):
+    """Create visualizations for telecom data"""
+    try:
+        # Set style for plots
+        plt.style.use('default')
+        sns.set_palette("husl")
+        
+        # Create figure with subplots
+        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+        fig.suptitle('Telecom Revenue Leakage Analysis', fontsize=16, fontweight='bold')
+        
+        # 1. Anomaly Types Distribution
+        if 'Anomaly_type' in leakage_data.columns:
+            anomaly_counts = leakage_data['Anomaly_type'].value_counts()
+            axes[0, 0].pie(anomaly_counts.values, labels=anomaly_counts.index, autopct='%1.1f%%', startangle=90)
+            axes[0, 0].set_title('Distribution of Anomaly Types')
+        
+        # 2. Zone Area Analysis
+        if 'Zone_area' in leakage_data.columns:
+            top_zones = leakage_data['Zone_area'].value_counts().head(10)
+            axes[0, 1].barh(range(len(top_zones)), top_zones.values)
+            axes[0, 1].set_yticks(range(len(top_zones)))
+            axes[0, 1].set_yticklabels(top_zones.index)
+            axes[0, 1].set_title('Top 10 Zones with Leakages')
+            axes[0, 1].set_xlabel('Number of Leakages')
+        
+        # 3. Balance Amount Distribution
+        if 'Balance_amount' in leakage_data.columns:
+            axes[1, 0].hist(leakage_data['Balance_amount'], bins=20, alpha=0.7, color='red', edgecolor='black')
+            axes[1, 0].set_title('Distribution of Leakage Amounts')
+            axes[1, 0].set_xlabel('Balance Amount ($)')
+            axes[1, 0].set_ylabel('Frequency')
+        
+        # 4. Data Usage vs Bought (if available)
+        if 'Data_used' in leakage_data.columns and 'Data_bought' in leakage_data.columns:
+            axes[1, 1].scatter(leakage_data['Data_bought'], leakage_data['Data_used'], alpha=0.6)
+            axes[1, 1].plot([0, leakage_data['Data_bought'].max()], [0, leakage_data['Data_bought'].max()], 'r--', alpha=0.8)
+            axes[1, 1].set_title('Data Usage vs Data Bought')
+            axes[1, 1].set_xlabel('Data Bought (GB)')
+            axes[1, 1].set_ylabel('Data Used (GB)')
+        else:
+            axes[1, 1].text(0.5, 0.5, 'Data usage analysis not available', ha='center', va='center', transform=axes[1, 1].transAxes)
+            axes[1, 1].set_title('Data Usage Analysis')
+        
+        plt.tight_layout()
+        
+        # Save to bytes buffer
+        img_buffer = io.BytesIO()
+        plt.savefig(img_buffer, format='png', dpi=300, bbox_inches='tight')
+        img_buffer.seek(0)
+        plt.close()
+        
+        return img_buffer
+        
+    except Exception as e:
+        print(f"Error creating telecom visualizations: {e}")
+        return None
+
+def create_word_document(domain, leakage_data, total_leakage_inr, leakage_percentage, report_content, visualizations_buffer):
+    """Create a Word document with the report and visualizations"""
+    try:
+        # Create a new Document
+        doc = Document()
+        
+        # Add title
+        title = doc.add_heading(f'{domain.upper()} REVENUE LEAKAGE REPORT', 0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Add date
+        doc.add_paragraph(f'Generated on: {datetime.now().strftime("%B %d, %Y at %I:%M %p")}')
+        doc.add_paragraph('')
+        
+        # Add executive summary
+        doc.add_heading('Executive Summary', level=1)
+        summary_table = doc.add_table(rows=4, cols=2)
+        summary_table.style = 'Table Grid'
+        
+        # Add summary data
+        summary_data = [
+            ['Total Revenue Leaked', f'₹{total_leakage_inr:,.2f}'],
+            ['Leakage Percentage', f'{leakage_percentage:.2f}%'],
+            ['Total Anomalies Detected', f'{len(leakage_data):,}'],
+            ['Average Leakage per Transaction', f'₹{leakage_data["Balance_Amount" if domain == "supermarket" else "Balance_amount"].mean() * 87.79:,.2f}']
+        ]
+        
+        for i, (label, value) in enumerate(summary_data):
+            summary_table.cell(i, 0).text = label
+            summary_table.cell(i, 1).text = value
+        
+        doc.add_paragraph('')
+        
+        # Add visualizations
+        if visualizations_buffer:
+            doc.add_heading('Data Visualizations', level=1)
+            doc.add_paragraph('The following charts provide detailed insights into the revenue leakage patterns:')
+            doc.add_paragraph('')
+            
+            # Add the visualization image
+            visualizations_buffer.seek(0)
+            doc.add_picture(visualizations_buffer, width=Inches(6))
+            doc.add_paragraph('')
+        
+        # Add detailed analysis
+        doc.add_heading('Detailed Analysis', level=1)
+        
+        # Add top anomaly types
+        if domain == 'supermarket':
+            if 'Anomaly_Type_Pred' in leakage_data.columns:
+                doc.add_heading('Top Anomaly Types', level=2)
+                anomaly_counts = leakage_data['Anomaly_Type_Pred'].value_counts().head(5)
+                for anomaly_type, count in anomaly_counts.items():
+                    doc.add_paragraph(f'• {anomaly_type}: {count} occurrences', style='List Bullet')
+                doc.add_paragraph('')
+            
+            if 'Store_Branch' in leakage_data.columns:
+                doc.add_heading('Top Branches with Leakages', level=2)
+                top_branches = leakage_data['Store_Branch'].value_counts().head(5)
+                for branch, count in top_branches.items():
+                    doc.add_paragraph(f'• {branch}: {count} occurrences', style='List Bullet')
+                doc.add_paragraph('')
+        else:  # telecom
+            if 'Anomaly_type' in leakage_data.columns:
+                doc.add_heading('Top Anomaly Types', level=2)
+                anomaly_counts = leakage_data['Anomaly_type'].value_counts().head(5)
+                for anomaly_type, count in anomaly_counts.items():
+                    doc.add_paragraph(f'• {anomaly_type}: {count} occurrences', style='List Bullet')
+                doc.add_paragraph('')
+            
+            if 'Zone_area' in leakage_data.columns:
+                doc.add_heading('Top Zones with Leakages', level=2)
+                top_zones = leakage_data['Zone_area'].value_counts().head(5)
+                for branch, count in top_zones.items():
+                    doc.add_paragraph(f'• {branch}: {count} occurrences', style='List Bullet')
+                doc.add_paragraph('')
+        
+        # Add recommendations
+        doc.add_heading('Recommendations', level=1)
+        recommendations = [
+            'Investigate the most common anomaly types to identify root causes',
+            'Review processes at branches/zones with high leakage rates',
+            'Implement additional validation checks for high-risk transactions',
+            'Provide training to staff on identified leakage patterns',
+            'Establish regular monitoring and reporting procedures',
+            'Consider implementing automated fraud detection systems',
+            'Review and update billing and payment processes'
+        ]
+        
+        for rec in recommendations:
+            doc.add_paragraph(rec, style='List Bullet')
+        
+        doc.add_paragraph('')
+        doc.add_paragraph('This report was generated automatically by the AI Revenue Leakage Detection System.')
+        
+        # Save to bytes buffer
+        doc_buffer = io.BytesIO()
+        doc.save(doc_buffer)
+        doc_buffer.seek(0)
+        
+        return doc_buffer
+        
+    except Exception as e:
+        print(f"Error creating Word document: {e}")
+        return None
 
 def generate_basic_telecom_report(leakage_data, total_leakage_inr, leakage_percentage):
     """Generate a basic telecom report when integrated analysis is not available"""
@@ -886,6 +1121,9 @@ def generate_supermarket_report(session_id):
         
         leakage_percentage = (len(leakage_data) / total_records * 100) if total_records > 0 else 0
         
+        # Create visualizations
+        visualizations_buffer = create_supermarket_visualizations(leakage_data)
+        
         # Check if Gemini API key is available
         gemini_api_key = os.getenv('GEMINI_API_KEY')
         
@@ -896,43 +1134,54 @@ def generate_supermarket_report(session_id):
                 analyzer = IntegratedAnalyzer()
                 # Configure the API key
                 genai.configure(api_key=gemini_api_key)
-                report = analyzer.generate_sales_api_report(
+                report_content = analyzer.generate_sales_api_report(
                     leakage_data, leakage_sample, total_leakage_inr, leakage_percentage
                 )
                 
-                return jsonify({
-                    'success': True,
-                    'report': {
-                        'content': report,
-                        'summary': {
-                            'total_leakage_inr': total_leakage_inr,
-                            'leakage_percentage': leakage_percentage,
-                            'total_anomalies': len(leakage_data),
-                            'domain': 'supermarket',
-                            'report_type': 'AI-Generated (Gemini)'
-                        }
-                    }
-                })
+                # Create Word document with AI-generated content and visualizations
+                doc_buffer = create_word_document('supermarket', leakage_data, total_leakage_inr, leakage_percentage, report_content, visualizations_buffer)
+                
+                if doc_buffer:
+                    return send_file(
+                        doc_buffer,
+                        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        as_attachment=True,
+                        download_name=f'supermarket_comprehensive_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx'
+                    )
+                else:
+                    # Fallback to basic report if Word document creation fails
+                    pass
                 
             except Exception as e:
                 print(f"Gemini API report generation failed, falling back to basic report: {str(e)}")
                 # Fall through to basic report generation
         
-        # Generate basic report
-        report = generate_basic_supermarket_report(leakage_data, total_leakage_inr, leakage_percentage)
-        return jsonify({
-            'success': True,
-            'report': {
-                'content': report,
-                'summary': {
-                    'total_leakage_inr': total_leakage_inr,
-                    'leakage_percentage': leakage_percentage,
-                    'total_anomalies': len(leakage_data),
-                    'domain': 'supermarket',
-                    'report_type': 'Basic Analysis'
+        # Generate basic report and Word document
+        report_content = generate_basic_supermarket_report(leakage_data, total_leakage_inr, leakage_percentage)
+        doc_buffer = create_word_document('supermarket', leakage_data, total_leakage_inr, leakage_percentage, report_content, visualizations_buffer)
+        
+        if doc_buffer:
+            return send_file(
+                doc_buffer,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                as_attachment=True,
+                download_name=f'supermarket_comprehensive_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx'
+            )
+        else:
+            # Fallback to JSON response if Word document creation fails
+            return jsonify({
+                'success': True,
+                'report': {
+                    'content': report_content,
+                    'summary': {
+                        'total_leakage_inr': total_leakage_inr,
+                        'leakage_percentage': leakage_percentage,
+                        'total_anomalies': len(leakage_data),
+                        'domain': 'supermarket',
+                        'report_type': 'Basic Analysis'
+                    }
                 }
-            }
-        })
+            })
             
     except Exception as e:
         print(f"Error generating supermarket report: {str(e)}")
@@ -970,6 +1219,9 @@ def generate_telecom_report(session_id):
         
         leakage_percentage = (len(leakage_data) / total_records * 100) if total_records > 0 else 0
         
+        # Create visualizations
+        visualizations_buffer = create_telecom_visualizations(leakage_data)
+        
         # Check if Gemini API key is available
         gemini_api_key = os.getenv('GEMINI_API_KEY')
         
@@ -980,43 +1232,54 @@ def generate_telecom_report(session_id):
                 analyzer = IntegratedAnalyzer()
                 # Configure the API key
                 genai.configure(api_key=gemini_api_key)
-                report = analyzer.generate_telecom_api_report(
+                report_content = analyzer.generate_telecom_api_report(
                     leakage_data, leakage_sample, total_leakage_inr, leakage_percentage
                 )
                 
-                return jsonify({
-                    'success': True,
-                    'report': {
-                        'content': report,
-                        'summary': {
-                            'total_leakage_inr': total_leakage_inr,
-                            'leakage_percentage': leakage_percentage,
-                            'total_anomalies': len(leakage_data),
-                            'domain': 'telecom',
-                            'report_type': 'AI-Generated (Gemini)'
-                        }
-                    }
-                })
+                # Create Word document with AI-generated content and visualizations
+                doc_buffer = create_word_document('telecom', leakage_data, total_leakage_inr, leakage_percentage, report_content, visualizations_buffer)
+                
+                if doc_buffer:
+                    return send_file(
+                        doc_buffer,
+                        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        as_attachment=True,
+                        download_name=f'telecom_comprehensive_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx'
+                    )
+                else:
+                    # Fallback to basic report if Word document creation fails
+                    pass
                 
             except Exception as e:
                 print(f"Gemini API report generation failed, falling back to basic report: {str(e)}")
                 # Fall through to basic report generation
         
-        # Generate basic report
-        report = generate_basic_telecom_report(leakage_data, total_leakage_inr, leakage_percentage)
-        return jsonify({
-            'success': True,
-            'report': {
-                'content': report,
-                'summary': {
-                    'total_leakage_inr': total_leakage_inr,
-                    'leakage_percentage': leakage_percentage,
-                    'total_anomalies': len(leakage_data),
-                    'domain': 'telecom',
-                    'report_type': 'Basic Analysis'
+        # Generate basic report and Word document
+        report_content = generate_basic_telecom_report(leakage_data, total_leakage_inr, leakage_percentage)
+        doc_buffer = create_word_document('telecom', leakage_data, total_leakage_inr, leakage_percentage, report_content, visualizations_buffer)
+        
+        if doc_buffer:
+            return send_file(
+                doc_buffer,
+                mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                as_attachment=True,
+                download_name=f'telecom_comprehensive_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.docx'
+            )
+        else:
+            # Fallback to JSON response if Word document creation fails
+            return jsonify({
+                'success': True,
+                'report': {
+                    'content': report_content,
+                    'summary': {
+                        'total_leakage_inr': total_leakage_inr,
+                        'leakage_percentage': leakage_percentage,
+                        'total_anomalies': len(leakage_data),
+                        'domain': 'telecom',
+                        'report_type': 'Basic Analysis'
+                    }
                 }
-            }
-        })
+            })
             
     except Exception as e:
         print(f"Error generating telecom report: {str(e)}")
@@ -1097,6 +1360,63 @@ def get_anomaly_data_info():
         
     except Exception as e:
         return jsonify({'success': False, 'error': f'Error getting anomaly data info: {str(e)}'}), 500
+
+# Test visualization creation endpoint
+@app.route('/api/test-visualizations', methods=['GET'])
+def test_visualizations():
+    """Test endpoint to create and return sample visualizations"""
+    try:
+        # Check if anomaly data exists
+        supermarket_anomaly_path = "model/super_market/output_datasets/anomaly_data.csv"
+        telecom_anomaly_path = "model/Telecom/output_dataset/telecom_anomaly_data.csv"
+        
+        results = {}
+        
+        # Test supermarket visualizations
+        if os.path.exists(supermarket_anomaly_path):
+            try:
+                leakage_data = pd.read_csv(supermarket_anomaly_path)
+                viz_buffer = create_supermarket_visualizations(leakage_data)
+                if viz_buffer:
+                    results['supermarket'] = {
+                        'success': True,
+                        'record_count': len(leakage_data),
+                        'columns': list(leakage_data.columns),
+                        'visualization_size': len(viz_buffer.getvalue())
+                    }
+                else:
+                    results['supermarket'] = {'success': False, 'error': 'Visualization creation failed'}
+            except Exception as e:
+                results['supermarket'] = {'success': False, 'error': str(e)}
+        else:
+            results['supermarket'] = {'success': False, 'error': 'Data file not found'}
+        
+        # Test telecom visualizations
+        if os.path.exists(telecom_anomaly_path):
+            try:
+                leakage_data = pd.read_csv(telecom_anomaly_path)
+                viz_buffer = create_telecom_visualizations(leakage_data)
+                if viz_buffer:
+                    results['telecom'] = {
+                        'success': True,
+                        'record_count': len(leakage_data),
+                        'columns': list(leakage_data.columns),
+                        'visualization_size': len(viz_buffer.getvalue())
+                    }
+                else:
+                    results['telecom'] = {'success': False, 'error': 'Visualization creation failed'}
+            except Exception as e:
+                results['telecom'] = {'success': False, 'error': str(e)}
+        else:
+            results['telecom'] = {'success': False, 'error': 'Data file not found'}
+        
+        return jsonify({
+            'success': True,
+            'results': results
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Error testing visualizations: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -95,22 +95,58 @@ const ResultsPage = ({ sessionData, onBackToHome, onVisualization }) => {
         method: 'POST' 
       });
       
-      const reportData = await response.json();
-      
-      if (reportData.success) {
-        // Create a downloadable report file
-        const reportContent = reportData.report.content;
-        const blob = new Blob([reportContent], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${domain}_comprehensive_report_${new Date().toISOString().split('T')[0]}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+      if (response.ok) {
+        // Check if response is a file download
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
+          // It's a Word document, download it directly
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          
+          // Get filename from response headers or create one
+          const contentDisposition = response.headers.get('content-disposition');
+          let filename = `${domain}_comprehensive_report_${new Date().toISOString().split('T')[0]}.docx`;
+          if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (filenameMatch && filenameMatch[1]) {
+              filename = filenameMatch[1].replace(/['"]/g, '');
+            }
+          }
+          
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } else {
+          // Fallback to JSON response handling
+          const reportData = await response.json();
+          if (reportData.success) {
+            // Create a downloadable report file (fallback to text)
+            const reportContent = reportData.report.content;
+            const blob = new Blob([reportContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${domain}_comprehensive_report_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+          } else {
+            setError(reportData.error || 'Failed to generate report');
+          }
+        }
       } else {
-        setError(reportData.error || 'Failed to generate report');
+        // Handle error response
+        try {
+          const errorData = await response.json();
+          setError(errorData.error || 'Failed to generate report');
+        } catch {
+          setError(`Failed to generate report: ${response.status} ${response.statusText}`);
+        }
       }
     } catch (err) {
       console.error('Report generation error:', err);
@@ -264,14 +300,14 @@ const ResultsPage = ({ sessionData, onBackToHome, onVisualization }) => {
               View Full Visualization
             </button>
             
-            <button
-              onClick={generateReport}
-              disabled={reportGenerating}
-              className={`${themeClasses.button} border px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center ${reportGenerating ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
-            >
-              <FileText className="h-5 w-5 mr-2" />
-              {reportGenerating ? 'Generating Report...' : 'View Detailed Report'}
-            </button>
+                             <button
+                   onClick={generateReport}
+                   disabled={reportGenerating}
+                   className={`${themeClasses.button} border px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center ${reportGenerating ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                 >
+                   <FileText className="h-5 w-5 mr-2" />
+                   {reportGenerating ? 'Generating Report...' : 'Generate Word Report'}
+                 </button>
           </div>
         </div>
 
