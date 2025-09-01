@@ -29,6 +29,8 @@ import { useGlobalTheme } from "./GlobalThemeContext";
 
 import DevelopersSection from "./Developers/Developers";
 
+import ChatBot from './ChatBot/ChatBot';
+
 const ThemeToggle = () => {
   const { isDark, toggleTheme } = useGlobalTheme();
   
@@ -653,6 +655,7 @@ const HomePage = ({ onDomainSelect }) => {
           </div>
         </div>
       </footer>
+      <ChatBot />
     </div>
   );
 };
