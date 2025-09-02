@@ -176,30 +176,6 @@ The application provides automated analysis through machine learning models, gen
 
 ## Architecture
 
-mermaid
-graph TD
-    subgraph "Client Browser"
-        User[👤 User]
-        Frontend[🌐 React Frontend<br/>Vite + React Router]
-    end
-
-    subgraph "Backend Server (Flask)"
-        API[🔗 Flask API Server<br/>app.py]
-        FileStorage[📁 File Storage<br/>/uploads, /outputs]
-        AnalysisEngine[⚙ Analysis Engine<br/>integrated_analysis.py]
-        MLModels[🧠 ML Models<br/>XGBoost + Rules Engine]
-        ReportGen[📄 Report Generators<br/>LLM + python-docx]
-        LLMService[🤖 Google Generative AI<br/>Summary Generation]
-    end
-
-    User --> Frontend
-    Frontend <--> API
-    API --> FileStorage
-    API --> AnalysisEngine
-    AnalysisEngine --> MLModels
-    AnalysisEngine --> ReportGen
-    ReportGen --> LLMService
-    ReportGen --> FileStorage
 
 
 ## Tech Stack
@@ -231,27 +207,29 @@ graph TD
 ### Development Setup
 bash
 # Backend setup
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python app.py
+```cd backend```
 
-# Frontend setup
-cd frontend
-npm install
-npm run dev
+```python -m venv venv```
+
+```source venv/bin/activate  # On Windows: venv\Scripts\activate```
+
+```pip install -r requirements.txt```
+
+```python app.py```
+
+# Frontend Setup
+```cd frontend```
+
+```npm install```
+
+# Start frontend server
+```npm run dev```
 
 
-### Production Deployment
-bash
-# Build frontend
-cd frontend
-npm run build
+# Start backend server
+```cd backend```
 
-# Deploy with gunicorn
-cd backend
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
+```python app.py```
 
 
 
@@ -259,6 +237,6 @@ gunicorn -w 4 -b 0.0.0.0:5000 app:app
 ### Environment Variables
 bash
 # Backend .env
-GEMINI_API_KEY=your_api_key
+```GEMINI_API_KEY=your_api_key```
 
 
