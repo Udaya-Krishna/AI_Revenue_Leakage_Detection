@@ -131,8 +131,8 @@ const DevelopersSection = () => {
       primaryColor: isDark ? "#A855F7" : "#8B5CF6",
       hoverColor: isDark ? "rgba(168, 85, 247, 0.1)" : "rgba(139, 92, 246, 0.1)",
       socialLinks: [
-        { type: 'github', url: 'https://github.com/godwin-wilfred', icon: Github },
-        { type: 'linkedin', url: 'https://linkedin.com/in/godwin-wilfred', icon: Linkedin },
+        { type: 'github', url: 'https://github.com/Godwin-7', icon: Github },
+        { type: 'linkedin', url: 'https://www.linkedin.com/in/godwin-a-b0557829a/', icon: Linkedin },
         { type: 'email', url: 'mailto:godwin.wilfred@revenueguard.ai', icon: Mail }
       ]
     },
@@ -153,8 +153,8 @@ const DevelopersSection = () => {
       primaryColor: isDark ? "#EC4899" : "#EC4899",
       hoverColor: "rgba(236, 72, 153, 0.1)",
       socialLinks: [
-        { type: 'github', url: 'https://github.com/pooja-shree', icon: Github },
-        { type: 'linkedin', url: 'https://linkedin.com/in/pooja-shree', icon: Linkedin },
+        { type: 'github', url: 'https://github.com/Poojashree064', icon: Github },
+        { type: 'linkedin', url: 'https://www.linkedin.com/in/pooja-shree064/', icon: Linkedin },
         { type: 'email', url: 'mailto:pooja.shree@revenueguard.ai', icon: Mail }
       ]
     },
@@ -175,8 +175,8 @@ const DevelopersSection = () => {
       primaryColor: "#10B981",
       hoverColor: "rgba(16, 185, 129, 0.1)",
       socialLinks: [
-        { type: 'github', url: 'https://github.com/ragul-kb', icon: Github },
-        { type: 'linkedin', url: 'https://linkedin.com/in/ragul-kb', icon: Linkedin },
+        { type: 'github', url: 'https://github.com/Ragul-K-B', icon: Github },
+        { type: 'linkedin', url: 'https://www.linkedin.com/in/ragul-k-b-3bb382290/', icon: Linkedin },
         { type: 'email', url: 'mailto:ragul.kb@revenueguard.ai', icon: Mail }
       ]
     },
@@ -197,8 +197,8 @@ const DevelopersSection = () => {
       primaryColor: "#F97316",
       hoverColor: "rgba(249, 115, 22, 0.1)",
       socialLinks: [
-        { type: 'github', url: 'https://github.com/ashwin-devops', icon: Github },
-        { type: 'linkedin', url: 'https://linkedin.com/in/ashwin-devops', icon: Linkedin },
+        { type: 'github', url: 'https://github.com/ASHWINROMAN007', icon: Github },
+        { type: 'linkedin', url: 'https://www.linkedin.com/in/ashwin-nandagopal-075645257/', icon: Linkedin },
         { type: 'email', url: 'mailto:ashwin@revenueguard.ai', icon: Mail }
       ]
     },
@@ -219,8 +219,8 @@ const DevelopersSection = () => {
       primaryColor: isDark ? "#06B6D4" : "#3B82F6",
       hoverColor: isDark ? "rgba(6, 182, 212, 0.1)" : "rgba(59, 130, 246, 0.1)",
       socialLinks: [
-        { type: 'github', url: 'https://github.com/udaya-krishnan', icon: Github },
-        { type: 'linkedin', url: 'https://linkedin.com/in/udaya-krishnan', icon: Linkedin },
+        { type: 'github', url: 'https://github.com/Udaya-Krishna', icon: Github },
+        { type: 'linkedin', url: 'https://www.linkedin.com/in/udaya-krishna-21aug/', icon: Linkedin },
         { type: 'email', url: 'mailto:udaya.krishnan@revenueguard.ai', icon: Mail }
       ]
     }

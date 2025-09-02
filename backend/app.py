@@ -247,11 +247,11 @@ def generate_ai_recommendations(domain, leakage_data, total_leakage_inr, leakage
     """Generate AI-powered recommendations using Gemini API with detailed, specific prompts"""
     try:
         # Configure Gemini API
-        google_api_key = os.getenv('GOOGLE_API_KEY')
-        if not google_api_key:
-            return "Error: Google API key not configured"
+        gemini_api_key = os.getenv('GEMINI_API_KEY')
+        if not gemini_api_key:
+            return "Error: Gemini API key not configured"
             
-        genai.configure(api_key=google_api_key)
+        genai.configure(api_key=gemini_api_key)
         
         # Select the appropriate model
         model = genai.GenerativeModel('gemini-1.5-pro')
@@ -259,7 +259,46 @@ def generate_ai_recommendations(domain, leakage_data, total_leakage_inr, leakage
         # Convert leakage data to string for context
         leakage_info = leakage_data.head(50).to_string()  # Send first 50 rows for context
         
-        # Create a domain-specific prompt with detailed instructions
+        try:
+            # Configure Gemini
+            model = genai.GenerativeModel('gemini-1.5-pro')
+            
+            # Create a domain-specific prompt with detailed instructions
+            if domain == 'supermarket':
+                prompt = f"""Analyze the following supermarket transaction data for potential revenue leakage:
+            
+    {leakage_info}
+    
+    Total detected leakage: ₹{total_leakage_inr:,.2f} ({leakage_percentage:.2f}% of total revenue)
+    
+    Provide 5 specific, actionable recommendations to prevent revenue leakage in the following format:
+    1. [High/Medium/Low] Priority: [Specific recommendation] - [Expected impact]
+    """
+            else:  # telecom
+                prompt = f"""Analyze the following telecom transaction data for potential revenue leakage:
+            
+    {leakage_info}
+    
+    Total detected leakage: ₹{total_leakage_inr:,.2f} ({leakage_percentage:.2f}% of total revenue)
+    
+    Provide 5 specific, actionable recommendations to prevent revenue leakage in the following format:
+    1. [High/Medium/Low] Priority: [Specific recommendation] - [Expected impact]
+    """
+            
+            # Generate content
+            response = model.generate_content(prompt)
+            
+            # Process and return the response
+            if response and hasattr(response, 'text'):
+                # Split the response into individual recommendations
+                recommendations = [line.strip() for line in response.text.split('\n') if line.strip()]
+                return recommendations[:5]  # Return first 5 recommendations
+                
+        except Exception as e:
+            print(f"Error generating AI recommendations: {str(e)}")
+            # Fall through to return default recommendations
+        
+        # Fallback recommendations if API call fails or returns no results
         if domain == 'supermarket':
             return [
                 "Implement real-time transaction monitoring for high-value items",
@@ -276,10 +315,6 @@ def generate_ai_recommendations(domain, leakage_data, total_leakage_inr, leakage
                 "Review and update commission structures to prevent fraud",
                 "Conduct regular audits of agent transactions"
             ]
-        
-        # Configure Gemini
-        genai.configure(api_key=gemini_api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
         
         if domain == 'supermarket':
             # Check for required columns and provide defaults if missing
