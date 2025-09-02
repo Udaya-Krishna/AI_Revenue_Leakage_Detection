@@ -1,4 +1,4 @@
-#AI REVENUE LEAKAGE DETECTION
+# AI REVENUE LEAKAGE DETECTION
 ```AI_Revenue_Leakage_Detection
 ├── .env
 ├── .gitignore
