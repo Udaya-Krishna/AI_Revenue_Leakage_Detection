@@ -1,5 +1,6 @@
 # AI REVENUE LEAKAGE DETECTION
-```AI_Revenue_Leakage_Detection
+```
+AI_Revenue_Leakage_Detection
 ├── .env
 ├── .gitignore
 ├── inspect_models.py
