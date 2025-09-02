@@ -1,14 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Minimize2, Maximize2, RotateCcw } from 'lucide-react';
-<<<<<<< HEAD
-import { useGlobalTheme } from '../GlobalThemeContext';
 
 const ChatBot = () => {
-  const { isDark } = useGlobalTheme();
-=======
-
-const ChatBot = () => {
->>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([
@@ -38,13 +31,10 @@ const ChatBot = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-<<<<<<< HEAD
-=======
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
->>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
   // System context for revenue leakage detection
   const systemContext = `You are a specialized AI assistant for "Revenue Leak Hunter AI", an AI-powered system for revenue leakage detection. 
 
@@ -63,77 +53,6 @@ const ChatBot = () => {
 
   If asked about unrelated topics, politely redirect the conversation back to revenue leakage detection and billing optimization.`;
 
-<<<<<<< HEAD
-  const callOpenAI = async (userMessage, conversationHistory) => {
-    try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.REACT_APP_OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            { role: 'system', content: systemContext },
-            ...conversationHistory.map(msg => ({
-              role: msg.sender === 'user' ? 'user' : 'assistant',
-              content: msg.text
-            })),
-            { role: 'user', content: userMessage }
-          ],
-          max_tokens: 500,
-          temperature: 0.7
-        })
-      });
-
-      if (!response.ok) throw new Error('OpenAI API failed');
-      
-      const data = await response.json();
-      return data.choices[0].message.content;
-    } catch (error) {
-      throw new Error(`OpenAI failed: ${error.message}`);
-    }
-  };
-
-  const callGemini = async (userMessage, conversationHistory) => {
-    try {
-      const conversationText = conversationHistory
-        .map(msg => `${msg.sender === 'user' ? 'User' : 'Assistant'}: ${msg.text}`)
-        .join('\n');
-      
-      const prompt = `${systemContext}\n\nConversation History:\n${conversationText}\n\nUser: ${userMessage}\n\nAssistant:`;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.REACT_APP_GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 500
-          }
-        })
-      });
-
-      if (!response.ok) throw new Error('Gemini API failed');
-      
-      const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
-    } catch (error) {
-      throw new Error(`Gemini failed: ${error.message}`);
-    }
-  };
-
-  const sendMessage = async () => {
-    if (!inputMessage.trim()) return;
-=======
   // Fallback responses for when APIs are unavailable
   const getFallbackResponse = (userMessage) => {
     const message = userMessage.toLowerCase().trim();
@@ -207,7 +126,6 @@ const ChatBot = () => {
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
->>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
 
     const userMessage = {
       id: Date.now(),
@@ -217,25 +135,13 @@ const ChatBot = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
-<<<<<<< HEAD
-=======
     const userInputText = inputMessage; // Store the input before clearing
->>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
     setInputMessage('');
     setIsLoading(true);
 
     try {
       const conversationHistory = messages.slice(-10); // Last 10 messages for context
       let botResponse;
-<<<<<<< HEAD
-
-      // Try OpenAI first, fallback to Gemini
-      try {
-        botResponse = await callOpenAI(inputMessage, conversationHistory);
-      } catch (openAIError) {
-        console.log('OpenAI failed, trying Gemini...', openAIError.message);
-        botResponse = await callGemini(inputMessage, conversationHistory);
-=======
       let apiCallSucceeded = false;
 
       // Check if API keys are available
@@ -279,7 +185,6 @@ const ChatBot = () => {
       if (!apiCallSucceeded) {
         console.log('Using fallback response system');
         botResponse = getFallbackResponse(userInputText);
->>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
       }
 
       const botMessage = {
@@ -291,12 +196,6 @@ const ChatBot = () => {
 
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
-<<<<<<< HEAD
-      console.error('Both APIs failed:', error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        text: "I apologize, but I'm experiencing technical difficulties. However, I can tell you that Revenue Leak Hunter AI helps identify billing discrepancies like missing charges, incorrect rates, and usage mismatches in real-time. Please try again in a moment or contact our support team.",
-=======
       console.error('Unexpected error in sendMessage:', error);
       
       // Final fallback - should rarely be reached
@@ -304,7 +203,6 @@ const ChatBot = () => {
       const errorMessage = {
         id: Date.now() + 1,
         text: fallbackResponse,
->>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
         sender: 'bot',
         timestamp: new Date()
       };
@@ -325,71 +223,6 @@ const ChatBot = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-<<<<<<< HEAD
-  // Theme configuration
-  const themeConfig = {
-    // Chat button
-    chatButton: isDark 
-      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-cyan-500/25'
-      : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-blue-500/25',
-    
-    // Chat window
-    windowBg: isDark ? 'bg-gray-900 border border-gray-700' : 'bg-white',
-    
-    // Header
-    headerBg: isDark 
-      ? 'bg-gradient-to-r from-cyan-600/90 to-blue-600/90 backdrop-blur-md'
-      : 'bg-gradient-to-r from-blue-600 to-purple-600',
-    
-    // Messages area
-    messagesBg: isDark ? 'bg-gray-800/50' : 'bg-gray-50/50',
-    
-    // User message
-    userMessage: isDark 
-      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white'
-      : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white',
-    
-    // Bot message
-    botMessage: isDark 
-      ? 'bg-gray-700/80 text-gray-100 border border-gray-600'
-      : 'bg-white text-gray-900 shadow-sm border border-gray-200',
-    
-    // Input area
-    inputBg: isDark ? 'bg-gray-800/80 backdrop-blur-sm border-t border-gray-700' : 'bg-white/80 backdrop-blur-sm border-t border-gray-200',
-    inputField: isDark 
-      ? 'bg-gray-700/60 border-gray-600 text-gray-100 placeholder-gray-400 focus:border-cyan-500 focus:ring-cyan-500/30'
-      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500/30',
-    
-    // Buttons
-    sendButton: isDark
-      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-600'
-      : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400',
-    
-    headerButton: isDark
-      ? 'hover:bg-white/10 text-white/80 hover:text-white'
-      : 'hover:bg-white/20 text-white/80 hover:text-white',
-    
-    // Text colors
-    primaryText: isDark ? 'text-gray-100' : 'text-gray-900',
-    secondaryText: isDark ? 'text-gray-300' : 'text-gray-600',
-    mutedText: isDark ? 'text-gray-400' : 'text-gray-500',
-    
-    // Tooltip
-    tooltip: isDark 
-      ? 'bg-gray-800 text-gray-100 border border-gray-700'
-      : 'bg-gray-900 text-white',
-    
-    // Loading dots
-    loadingDots: isDark ? 'bg-gray-500' : 'bg-gray-400',
-    
-    // Avatar backgrounds
-    userAvatar: isDark 
-      ? 'bg-gradient-to-r from-cyan-500 to-blue-500'
-      : 'bg-gradient-to-r from-blue-600 to-purple-600',
-    botAvatar: isDark 
-      ? 'bg-gradient-to-r from-purple-500 to-cyan-500'
-      : 'bg-gradient-to-r from-purple-500 to-blue-500'
-=======
   // Dark theme by default
   const themeConfig = {
     chatButton: 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-cyan-500/25',
@@ -409,7 +242,6 @@ const ChatBot = () => {
     loadingDots: 'bg-gray-500',
     userAvatar: 'bg-gradient-to-r from-cyan-500 to-blue-500',
     botAvatar: 'bg-gradient-to-r from-purple-500 to-cyan-500'
->>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
   };
 
   return (
@@ -426,13 +258,9 @@ const ChatBot = () => {
             Chat with Revenue Leak Hunter AI
           </div>
         </button>
-<<<<<<< HEAD
-      )}      {/* Chat Window */}
-=======
       )}
 
       {/* Chat Window */}
->>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
       {isOpen && (
         <div className={`fixed bottom-20 right-6 ${themeConfig.windowBg} rounded-2xl shadow-2xl z-50 transition-all duration-300 ${
           isMinimized ? 'w-80 h-16' : 'w-96 max-h-[80vh] h-[600px]'

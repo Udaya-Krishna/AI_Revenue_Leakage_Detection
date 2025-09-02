@@ -254,14 +254,14 @@ def generate_ai_recommendations(domain, leakage_data, total_leakage_inr, leakage
         genai.configure(api_key=gemini_api_key)
         
         # Select the appropriate model
-        model = genai.GenerativeModel('gemini-1.5-pro')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         # Convert leakage data to string for context
         leakage_info = leakage_data.head(50).to_string()  # Send first 50 rows for context
         
         try:
             # Configure Gemini
-            model = genai.GenerativeModel('gemini-1.5-pro')
+            model = genai.GenerativeModel('gemini-1.5-flash')
             
             # Create a domain-specific prompt with detailed instructions
             if domain == 'supermarket':

@@ -1,4 +1,5 @@
-AI_Revenue_Leakage_Detection
+#AI REVENUE LEAKAGE DETECTION
+```AI_Revenue_Leakage_Detection
 ├── .env
 ├── .gitignore
 ├── inspect_models.py
@@ -98,7 +99,7 @@ AI_Revenue_Leakage_Detection
             ├── api.js
             ├── chartUtils.js
             └── constants.js
-
+```
 
 
 # RepoMix - AI-Powered Data Analysis & Anomaly Detection Platform
