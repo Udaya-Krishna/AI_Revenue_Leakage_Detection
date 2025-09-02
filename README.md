@@ -1,3 +1,107 @@
+AI_Revenue_Leakage_Detection
+├── .env
+├── .gitignore
+├── inspect_models.py
+├── README.md
+├── backend
+│   ├── .env
+│   ├── .gitignore
+│   ├── app.py
+│   ├── README.md
+│   ├── requirements.txt
+│   ├── model
+│   │   ├── Readme.md
+│   │   ├── super_market
+│   │   │   ├── cleaning
+│   │   │   │   ├── clean.ipynb
+│   │   │   │   ├── cleaning2.ipynb
+│   │   │   │   └── train.ipynb
+│   │   │   ├── datasets
+│   │   │   │   ├── input_dataset_cleaned.csv
+│   │   │   │   └── supermarket_dataset.csv
+│   │   │   ├── models
+│   │   │   │   ├── model.ipynb
+│   │   │   │   ├── modelwith_input.ipynb
+│   │   │   │   └── Report Generation using_LLM.py
+│   │   │   ├── output_datasets
+│   │   │   │   ├── anomaly_data.csv
+│   │   │   │   ├── new_supermarket_with_predictions.csv
+│   │   │   │   └── no_leakage_data.csv
+│   │   │   └── saved_models
+│   │   │       ├── anomaly_encoder.pkl
+│   │   │       ├── leakage_encoder.pkl
+│   │   │       └── trained_pipeline.pkl
+│   │   └── Telecom
+│   │       ├── cleaning
+│   │       │   └── cleaning_1.ipynb
+│   │       ├── dataset
+│   │       │   ├── telecom_billing_dataset.csv
+│   │       │   └── telecom_input.csv
+│   │       ├── model
+│   │       │   ├── model.ipynb
+│   │       │   └── model_with_input2.ipynb
+│   │       ├── output_dataset
+│   │       │   ├── telecom_anomaly_data.csv
+│   │       │   ├── telecom_no_leakage_data.csv
+│   │       │   └── telecom_predictions.csv
+│   │       └── saved_model
+│   │           ├── le_anomaly.pkl
+│   │           ├── le_leakage.pkl
+│   │           └── telecom_pipeline.pkl
+│   └── report_generation
+│       ├── integrated_analysis.py
+│       ├── test.py
+│       └── __pycache__
+│           └── integrated_analysis.cpython-312.pyc
+└── frontend
+    ├── .env
+    ├── .gitignore
+    ├── eslint.config.js
+    ├── index.html
+    ├── postcss.config.js
+    ├── README.md
+    ├── tailwind.config.js
+    ├── vite.config.js
+    ├── public
+    │   └── vite.svg
+    └── src
+        ├── App.css
+        ├── App.jsx
+        ├── index.css
+        ├── main.jsx
+        ├── assets
+        │   └── react.svg
+        ├── components
+        │   ├── common
+        │   │   ├── ErrorMessage.jsx
+        │   │   ├── FileUpload.jsx
+        │   │   ├── LoadingSpinner.jsx
+        │   │   └── StatsCard.jsx
+        │   ├── HomePage
+        │   │   ├── GlobalThemeContext.jsx
+        │   │   ├── HomePage.jsx
+        │   │   ├── ChatBot
+        │   │   │   └── ChatBot.jsx
+        │   │   └── Developers
+        │   │       └── Developers.jsx
+        │   ├── Results
+        │   │   └── ResultsPage.jsx
+        │   ├── Super_market
+        │   │   ├── Old_Super.txt
+        │   │   └── Super_market.jsx
+        │   ├── Telecommunication
+        │   │   ├── old_telecom.txt
+        │   │   └── Telecommunication.jsx
+        │   └── Visualization
+        │       └── VisualizationDashboard.jsx
+        └── utils
+            ├── api.js
+            ├── chartUtils.js
+            └── constants.js
+
+
+
+
 # AI-Powered Revenue Leakage Detection System
 
 A comprehensive solution for detecting revenue leakage in various industries using machine learning and data analysis.
