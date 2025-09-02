@@ -1,9 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Minimize2, Maximize2, RotateCcw } from 'lucide-react';
+<<<<<<< HEAD
 import { useGlobalTheme } from '../GlobalThemeContext';
 
 const ChatBot = () => {
   const { isDark } = useGlobalTheme();
+=======
+
+const ChatBot = () => {
+>>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([
@@ -33,6 +38,13 @@ const ChatBot = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+<<<<<<< HEAD
+=======
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+>>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
   // System context for revenue leakage detection
   const systemContext = `You are a specialized AI assistant for "Revenue Leak Hunter AI", an AI-powered system for revenue leakage detection. 
 
@@ -51,6 +63,7 @@ const ChatBot = () => {
 
   If asked about unrelated topics, politely redirect the conversation back to revenue leakage detection and billing optimization.`;
 
+<<<<<<< HEAD
   const callOpenAI = async (userMessage, conversationHistory) => {
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -120,6 +133,81 @@ const ChatBot = () => {
 
   const sendMessage = async () => {
     if (!inputMessage.trim()) return;
+=======
+  // Fallback responses for when APIs are unavailable
+  const getFallbackResponse = (userMessage) => {
+    const message = userMessage.toLowerCase().trim();
+    
+    if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
+      return "Hello! I'm your Revenue Leak Hunter AI assistant. I specialize in helping businesses detect and prevent revenue leakage through AI-powered billing analysis. How can I assist you today?";
+    }
+    
+    if (message.includes('missing charge') || message.includes('missing billing') || message.includes('charge')) {
+      return "Missing charges are one of the most common types of revenue leakage! This typically happens when:\n\n• Services are provisioned but not billed\n• Usage data doesn't sync with billing systems\n• Manual billing entries are overlooked\n• System integration gaps occur\n\nOur AI detects these by comparing service provisioning logs with billing records in real-time. We can identify missing charges within minutes and automatically create investigation tickets. Would you like to know more about our detection algorithms?";
+    }
+    
+    if (message.includes('revenue leak') || message.includes('billing discrepancy') || message.includes('discrepancy')) {
+      return "Revenue leakage typically occurs through several billing discrepancies:\n\n• Missing charges for services rendered\n• Incorrect pricing or rate applications\n• Usage vs billing mismatches\n• Duplicate billing entries\n• Service provisioning errors\n• Contract term misapplications\n\nOur AI system monitors these areas 24/7, processing thousands of transactions to catch issues before they impact your revenue. What type of billing challenges are you currently facing?";
+    }
+    
+    if (message.includes('how') && (message.includes('detect') || message.includes('work') || message.includes('ai'))) {
+      return "Our Revenue Leak Hunter AI works through advanced pattern recognition:\n\n1. **Real-time Monitoring**: Continuously analyzes billing workflows and service provisioning\n2. **Data Cross-referencing**: Compares usage logs with contract terms and billing records\n3. **Pattern Detection**: Identifies anomalies using machine learning algorithms\n4. **Automated Alerts**: Generates instant notifications for potential revenue leaks\n5. **Investigation Automation**: Creates detailed tickets for manual review\n\nThe system learns from historical data to improve detection accuracy over time. Would you like details about any specific detection method?";
+    }
+    
+    if (message.includes('benefit') || message.includes('advantage') || message.includes('roi') || message.includes('value')) {
+      return "AI-powered revenue leak detection provides significant business value:\n\n**Financial Benefits:**\n• Recover 2-8% of annual revenue typically lost to billing errors\n• Reduce manual audit costs by 70-90%\n• Faster dispute resolution and customer satisfaction\n\n**Operational Benefits:**\n• Real-time detection vs quarterly manual audits\n• Automated investigation workflows\n• Detailed analytics and reporting\n\n**ROI Timeline:**\nMost clients see positive ROI within 3-6 months through recovered revenue and process improvements. What's your current annual billing volume?";
+    }
+    
+    if (message.includes('pricing') || message.includes('cost') || message.includes('price')) {
+      return "Our Revenue Leak Hunter AI pricing is based on your billing volume and complexity:\n\n• **Starter**: Up to $1M annual billing - Fixed monthly fee\n• **Professional**: $1M-$10M annual billing - Percentage of recovered revenue\n• **Enterprise**: $10M+ annual billing - Custom pricing with dedicated support\n\nWe also offer a free 30-day trial with full system access to demonstrate value before commitment. Would you like me to connect you with our sales team for a personalized quote?";
+    }
+    
+    if (message.includes('demo') || message.includes('trial') || message.includes('test')) {
+      return "Great! Our free 30-day trial includes:\n\n✅ Full access to AI detection algorithms\n✅ Real-time billing analysis of your data\n✅ Automated investigation ticket generation\n✅ Detailed revenue leakage reports\n✅ Integration with your existing billing systems\n✅ Dedicated onboarding support\n\nNo credit card required! The trial typically identifies revenue leaks worth 10-50x our monthly subscription cost. Ready to get started? I can help you begin the setup process.";
+    }
+    
+    if (message.includes('thank you') || message.includes('thanks')) {
+      return "You're very welcome! I'm here to help you optimize your revenue processes and eliminate billing leakage. Feel free to ask about any specific billing challenges, our AI detection methods, or implementation details!";
+    }
+    
+    if (message.includes('integration') || message.includes('setup') || message.includes('implement')) {
+      return "Revenue Leak Hunter AI integrates seamlessly with most billing systems:\n\n**Supported Integrations:**\n• Salesforce Billing\n• Oracle NetSuite\n• SAP Billing\n• Custom ERP systems via API\n• Zuora, Chargebee, Stripe\n• Database direct connections\n\n**Setup Process:**\n1. Data connection configuration (1-2 days)\n2. AI model training on your data (3-5 days)\n3. Testing and validation (2-3 days)\n4. Go-live with monitoring\n\nTotal implementation: 1-2 weeks. What billing system are you currently using?";
+    }
+    
+    // Default response for any other questions
+    return `I understand you're asking about "${userMessage}". While I can provide detailed information about revenue leakage detection, billing optimization, and our AI system's capabilities, I'm currently running with limited processing power.\n\nFor your specific question about missing charges, incorrect billing, or revenue recovery - our AI system excels at detecting these exact issues in real-time. Would you like me to explain how we identify and resolve billing discrepancies like the one you mentioned?`;
+  };
+
+  const callOpenAI = async (userMessage, conversationHistory) => {
+    // Get API key from environment variable
+    const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+
+    // Note: Direct API calls from browser will fail due to CORS
+    // This would need to be proxied through your backend
+    console.log('OpenAI API call would be made here, but requires backend proxy due to CORS');
+    throw new Error('API calls require backend proxy for CORS');
+  };
+
+  const callGemini = async (userMessage, conversationHistory) => {
+    const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('Gemini API key not configured');
+    }
+
+    // Note: Direct API calls from browser will fail due to CORS
+    // This would need to be proxied through your backend
+    console.log('Gemini API call would be made here, but requires backend proxy due to CORS');
+    throw new Error('API calls require backend proxy for CORS');
+  };
+
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
+>>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
 
     const userMessage = {
       id: Date.now(),
@@ -129,12 +217,17 @@ const ChatBot = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+<<<<<<< HEAD
+=======
+    const userInputText = inputMessage; // Store the input before clearing
+>>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
     setInputMessage('');
     setIsLoading(true);
 
     try {
       const conversationHistory = messages.slice(-10); // Last 10 messages for context
       let botResponse;
+<<<<<<< HEAD
 
       // Try OpenAI first, fallback to Gemini
       try {
@@ -142,6 +235,51 @@ const ChatBot = () => {
       } catch (openAIError) {
         console.log('OpenAI failed, trying Gemini...', openAIError.message);
         botResponse = await callGemini(inputMessage, conversationHistory);
+=======
+      let apiCallSucceeded = false;
+
+      // Check if API keys are available
+      const hasOpenAI = !!process.env.REACT_APP_OPENAI_API_KEY;
+      const hasGemini = !!process.env.REACT_APP_GEMINI_API_KEY;
+
+      // Only try API calls if we have keys and we're in a browser environment that supports fetch
+      if ((hasOpenAI || hasGemini) && typeof window !== 'undefined') {
+        try {
+          if (hasOpenAI) {
+            console.log('Trying OpenAI API...');
+            botResponse = await callOpenAI(userInputText, conversationHistory);
+            apiCallSucceeded = true;
+          } else if (hasGemini) {
+            console.log('Trying Gemini API...');
+            botResponse = await callGemini(userInputText, conversationHistory);
+            apiCallSucceeded = true;
+          }
+        } catch (apiError) {
+          console.log('Primary API failed:', apiError.message);
+          
+          // Try the other API if available
+          if (hasOpenAI && hasGemini) {
+            try {
+              console.log('Trying fallback API...');
+              if (hasOpenAI) {
+                botResponse = await callGemini(userInputText, conversationHistory);
+              } else {
+                botResponse = await callOpenAI(userInputText, conversationHistory);
+              }
+              apiCallSucceeded = true;
+            } catch (fallbackError) {
+              console.log('Fallback API also failed:', fallbackError.message);
+              apiCallSucceeded = false;
+            }
+          }
+        }
+      }
+
+      // Use fallback responses if API calls failed or no keys available
+      if (!apiCallSucceeded) {
+        console.log('Using fallback response system');
+        botResponse = getFallbackResponse(userInputText);
+>>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
       }
 
       const botMessage = {
@@ -153,10 +291,20 @@ const ChatBot = () => {
 
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
+<<<<<<< HEAD
       console.error('Both APIs failed:', error);
       const errorMessage = {
         id: Date.now() + 1,
         text: "I apologize, but I'm experiencing technical difficulties. However, I can tell you that Revenue Leak Hunter AI helps identify billing discrepancies like missing charges, incorrect rates, and usage mismatches in real-time. Please try again in a moment or contact our support team.",
+=======
+      console.error('Unexpected error in sendMessage:', error);
+      
+      // Final fallback - should rarely be reached
+      const fallbackResponse = getFallbackResponse(userInputText);
+      const errorMessage = {
+        id: Date.now() + 1,
+        text: fallbackResponse,
+>>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
         sender: 'bot',
         timestamp: new Date()
       };
@@ -177,6 +325,7 @@ const ChatBot = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+<<<<<<< HEAD
   // Theme configuration
   const themeConfig = {
     // Chat button
@@ -240,6 +389,27 @@ const ChatBot = () => {
     botAvatar: isDark 
       ? 'bg-gradient-to-r from-purple-500 to-cyan-500'
       : 'bg-gradient-to-r from-purple-500 to-blue-500'
+=======
+  // Dark theme by default
+  const themeConfig = {
+    chatButton: 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-cyan-500/25',
+    windowBg: 'bg-gray-900 border border-gray-700',
+    headerBg: 'bg-gradient-to-r from-cyan-600/90 to-blue-600/90 backdrop-blur-md',
+    messagesBg: 'bg-gray-800/50',
+    userMessage: 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white',
+    botMessage: 'bg-gray-700/80 text-gray-100 border border-gray-600',
+    inputBg: 'bg-gray-800/80 backdrop-blur-sm border-t border-gray-700',
+    inputField: 'bg-gray-700/60 border-gray-600 text-gray-100 placeholder-gray-400 focus:border-cyan-500 focus:ring-cyan-500/30',
+    sendButton: 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-600',
+    headerButton: 'hover:bg-white/10 text-white/80 hover:text-white',
+    primaryText: 'text-gray-100',
+    secondaryText: 'text-gray-300',
+    mutedText: 'text-gray-400',
+    tooltip: 'bg-gray-800 text-gray-100 border border-gray-700',
+    loadingDots: 'bg-gray-500',
+    userAvatar: 'bg-gradient-to-r from-cyan-500 to-blue-500',
+    botAvatar: 'bg-gradient-to-r from-purple-500 to-cyan-500'
+>>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
   };
 
   return (
@@ -256,7 +426,13 @@ const ChatBot = () => {
             Chat with Revenue Leak Hunter AI
           </div>
         </button>
+<<<<<<< HEAD
       )}      {/* Chat Window */}
+=======
+      )}
+
+      {/* Chat Window */}
+>>>>>>> 14bdd0adb5b4c0f67aa0c884c0f50c95e03c8119
       {isOpen && (
         <div className={`fixed bottom-20 right-6 ${themeConfig.windowBg} rounded-2xl shadow-2xl z-50 transition-all duration-300 ${
           isMinimized ? 'w-80 h-16' : 'w-96 max-h-[80vh] h-[600px]'
