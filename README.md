@@ -103,7 +103,6 @@ AI_Revenue_Leakage_Detection
 ```
 
 
-# RepoMix - AI-Powered Data Analysis & Anomaly Detection Platform
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
@@ -119,68 +118,11 @@ AI_Revenue_Leakage_Detection
 
 ## Project Overview
 
-RepoMix is a comprehensive web application designed to analyze business datasets for anomalies and revenue leakages. The platform serves two primary domains:
+*Revenue leak hunter AI* is a comprehensive web application designed to analyze business datasets for anomalies and revenue leakages. The platform serves two primary domains:
 - *Supermarket*: Detects pricing anomalies, missing charges, and usage mismatches
 - *Telecom*: Identifies billing inconsistencies and payment status mismatches
 
 The application provides automated analysis through machine learning models, generates professional reports, and offers interactive visualizations to help businesses identify and address operational inefficiencies.
-
-## Architecture
-
-mermaid
-graph TD
-    subgraph "Client Browser"
-        User[👤 User]
-        Frontend[🌐 React Frontend<br/>Vite + React Router]
-    end
-
-    subgraph "Backend Server (Flask)"
-        API[🔗 Flask API Server<br/>app.py]
-        FileStorage[📁 File Storage<br/>/uploads, /outputs]
-        AnalysisEngine[⚙ Analysis Engine<br/>integrated_analysis.py]
-        MLModels[🧠 ML Models<br/>XGBoost + Rules Engine]
-        ReportGen[📄 Report Generators<br/>LLM + python-docx]
-        LLMService[🤖 Google Generative AI<br/>Summary Generation]
-    end
-
-    User --> Frontend
-    Frontend <--> API
-    API --> FileStorage
-    API --> AnalysisEngine
-    AnalysisEngine --> MLModels
-    AnalysisEngine --> ReportGen
-    ReportGen --> LLMService
-    ReportGen --> FileStorage
-
-
-## Tech Stack
-
-### Frontend
-- *React 18*: Modern JavaScript UI library
-- *Vite*: Fast build tool and development server
-- *React Router*: Client-side routing
-- *Axios*: HTTP client for API communication
-- *Chart.js*: Interactive data visualizations
-- *Tailwind CSS*: Utility-first CSS framework
-- *Lucide React*: Icon library
-
-### Backend
-- *Flask*: Lightweight Python web framework
-- *Pandas*: Data manipulation and analysis
-- *NumPy*: Numerical computations
-- *Scikit-learn*: Machine learning library
-- *XGBoost*: Gradient boosting framework
-- *python-docx*: Word document generation
-- *Google Generative AI*: LLM for report summaries
-- *Flask-CORS*: Cross-origin resource sharing
-
-### Storage & Processing
-- *CSV Processing*: Pandas + NumPy
-- *Session Management*: UUID-based sessions
-- *File Storage*: Local filesystem (/uploads, /outputs)
-- *Report Generation*: .docx format with embedded charts
-
-## User Journey
 
 ### 1. Homepage & Domain Selection
 *User Experience*: User lands on a clean, modern homepage with two primary options: Supermarket or Telecom analysis.
@@ -231,6 +173,59 @@ graph TD
 - *Summary Report*: LLM generates executive summary via Google Generative AI
 - *Detailed Report*: python-docx creates comprehensive .docx with tables, charts, and explanations
 - Download endpoints stream files directly to user browser
+
+## Architecture
+
+mermaid
+graph TD
+    subgraph "Client Browser"
+        User[👤 User]
+        Frontend[🌐 React Frontend<br/>Vite + React Router]
+    end
+
+    subgraph "Backend Server (Flask)"
+        API[🔗 Flask API Server<br/>app.py]
+        FileStorage[📁 File Storage<br/>/uploads, /outputs]
+        AnalysisEngine[⚙ Analysis Engine<br/>integrated_analysis.py]
+        MLModels[🧠 ML Models<br/>XGBoost + Rules Engine]
+        ReportGen[📄 Report Generators<br/>LLM + python-docx]
+        LLMService[🤖 Google Generative AI<br/>Summary Generation]
+    end
+
+    User --> Frontend
+    Frontend <--> API
+    API --> FileStorage
+    API --> AnalysisEngine
+    AnalysisEngine --> MLModels
+    AnalysisEngine --> ReportGen
+    ReportGen --> LLMService
+    ReportGen --> FileStorage
+
+
+## Tech Stack
+
+### Frontend
+- *React.js*
+- *Build Tool: Vite*
+- *Styling: Tailwind CSS*
+- *Data Visualization: Chart.js*
+- *State Management: React Context API*
+
+### Backend
+- *Core: Python 3.8+*
+- *Web Framework: Flask*
+- *Data Processing: Pandas, NumPy*
+- *Machine Learning: Scikit-learn, Joblib (Model Persistence)*
+- *AI Integration: Google’s Gemini API*
+- *Visualization: Matplotlib, Seaborn, Plotly*
+
+### Storage & Processing
+- *CSV Processing*: Pandas + NumPy
+- *Session Management*: UUID-based sessions
+- *File Storage*: Local filesystem (/uploads, /outputs)
+- *Report Generation*: .docx format with embedded charts
+
+
 
 ## Technical Implementation
 
