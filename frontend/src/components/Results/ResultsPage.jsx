@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, BarChart3, Download, FileText, AlertTriangle, CheckCircle, Eye, TrendingUp, DollarSign, Home, Upload } from 'lucide-react';
 import { useGlobalTheme } from '../HomePage/GlobalThemeContext';
-import { getResults, downloadFile, handleApiError } from '../../utils/api';
+import { getResults, downloadFile, handleApiError, getSessionVisualization } from '../../utils/api';
 import LoadingSpinner from '../common/LoadingSpinner';
 import ErrorMessage from '../common/ErrorMessage';
 import StatsCard from '../common/StatsCard';
@@ -13,22 +13,191 @@ const ResultsPage = ({ sessionData, onBackToHome, onVisualization, onAnalyzeNewD
   const [error, setError] = useState('');
   const [chartsReady, setChartsReady] = useState(false);
   const [reportGenerating, setReportGenerating] = useState(false);
+  const [chartData, setChartData] = useState(null);
+  const [chartsLoading, setChartsLoading] = useState(false);
+  const chartsInitialized = useRef(false);
 
-  // Load Plotly for charts
   useEffect(() => {
-    if (!window.Plotly) {
+    setResults(sessionData);
+  }, [sessionData]); 
+
+  // Load Chart.js dynamically (same as VisualizationDashboard)
+  useEffect(() => {
+    if (!window.Chart) {
       const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js';
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
       script.onload = () => {
         setChartsReady(true);
-        if (results) createCharts();
       };
       document.head.appendChild(script);
     } else {
       setChartsReady(true);
-      if (results) createCharts();
     }
-  }, [results]);
+  }, []);
+
+  // Load chart data when component mounts or sessionData changes
+  useEffect(() => {
+    if (sessionData?.session_id && chartsReady) {
+      loadChartData(sessionData.session_id);
+    }
+  }, [sessionData, chartsReady]);
+
+  // Create charts when data is ready
+  useEffect(() => {
+    if (chartData && chartsReady && !chartsInitialized.current) {
+      setTimeout(() => {
+        createCharts();
+        chartsInitialized.current = true;
+      }, 100);
+    }
+  }, [chartData, chartsReady]);
+
+  const loadChartData = async (sessionId) => {
+    try {
+      setChartsLoading(true);
+      const data = await getSessionVisualization(sessionId);
+      if (data && data.charts) {
+        setChartData(data);
+      } else {
+        console.warn('No chart data received');
+      }
+    } catch (err) {
+      console.error('Failed to load chart data:', err);
+    } finally {
+      setChartsLoading(false);
+    }
+  };
+
+  const createCharts = () => {
+    if (!window.Chart || !chartData || !chartData.charts) return;
+
+    // Enhanced color palettes (same as VisualizationDashboard)
+    const colorPalettes = {
+      primary: [
+        'rgba(71, 85, 105, 0.8)', 'rgba(239, 68, 68, 0.8)', 'rgba(16, 185, 129, 0.8)',
+        'rgba(245, 158, 11, 0.8)', 'rgba(139, 92, 246, 0.8)', 'rgba(236, 72, 153, 0.8)',
+        'rgba(6, 182, 212, 0.8)', 'rgba(34, 197, 94, 0.8)', 'rgba(251, 113, 133, 0.8)',
+        'rgba(168, 85, 247, 0.8)'
+      ],
+      borders: [
+        'rgba(71, 85, 105, 1)', 'rgba(239, 68, 68, 1)', 'rgba(16, 185, 129, 1)',
+        'rgba(245, 158, 11, 1)', 'rgba(139, 92, 246, 1)', 'rgba(236, 72, 153, 1)',
+        'rgba(6, 182, 212, 1)', 'rgba(34, 197, 94, 1)', 'rgba(251, 113, 133, 1)',
+        'rgba(168, 85, 247, 1)'
+      ]
+    };
+
+    try {
+      // Show only the first two charts in ResultsPage
+      const chartsToShow = chartData.charts.slice(0, 2);
+      
+      chartsToShow.forEach((chartInfo, index) => {
+        if (chartInfo.error) return;
+        
+        const canvasId = index === 0 ? 'leakageChart' : 'anomalyChart';
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        
+        // Clear existing chart
+        const existingChart = window.Chart.getChart(canvas);
+        if (existingChart) {
+          existingChart.destroy();
+        }
+        
+        const ctx = canvas.getContext('2d');
+        
+        const labels = Object.keys(chartInfo.data);
+        const values = Object.values(chartInfo.data);
+
+        let chartConfig = {
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Count',
+              data: values,
+              backgroundColor: colorPalettes.primary.slice(0, labels.length),
+              borderColor: colorPalettes.borders.slice(0, labels.length),
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: {
+                display: true,
+                text: chartInfo.title,
+                font: {
+                  size: 16,
+                  weight: 'bold'
+                },
+                padding: {
+                  top: 10,
+                  bottom: 20
+                },
+                color: isDark ? '#ffffff' : '#1e293b'
+              },
+              legend: {
+                display: ['pie', 'doughnut', 'polarArea'].includes(chartInfo.type),
+                position: 'bottom',
+                labels: {
+                  padding: 15,
+                  usePointStyle: true,
+                  color: isDark ? '#ffffff' : '#1e293b'
+                }
+              }
+            },
+            animation: {
+              duration: 1500,
+              easing: 'easeInOutQuart'
+            }
+          }
+        };
+
+        // Set chart type and specific configurations
+        switch (chartInfo.type) {
+          case 'pie':
+            chartConfig.type = 'pie';
+            chartConfig.data.datasets[0].borderWidth = 3;
+            break;
+          case 'doughnut':
+            chartConfig.type = 'doughnut';
+            chartConfig.data.datasets[0].borderWidth = 3;
+            chartConfig.options.cutout = '60%';
+            break;
+          case 'bar':
+          default:
+            chartConfig.type = 'bar';
+            chartConfig.options.scales = {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  precision: 0,
+                  color: isDark ? '#ffffff' : '#1e293b'
+                },
+                grid: {
+                  color: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  color: isDark ? '#ffffff' : '#1e293b'
+                }
+              }
+            };
+            break;
+        }
+
+        new window.Chart(ctx, chartConfig);
+      });
+
+    } catch (err) {
+      console.error('Error creating charts:', err);
+    }
+  };
 
   // If no session data provided, try to get from URL or latest session
   useEffect(() => {
@@ -38,42 +207,6 @@ const ResultsPage = ({ sessionData, onBackToHome, onVisualization, onAnalyzeNewD
       setLoading(false);
     }
   }, [sessionData]);
-
-  const createCharts = () => {
-    if (!window.Plotly || !results || !results.visualizations) return;
-
-    try {
-      // Create leakage distribution chart
-      if (results.visualizations.leakage_chart && document.getElementById('leakageChart')) {
-        const leakageData = JSON.parse(results.visualizations.leakage_chart);
-        window.Plotly.newPlot('leakageChart', leakageData.data, {
-          ...leakageData.layout,
-          paper_bgcolor: 'transparent',
-          plot_bgcolor: 'transparent',
-          font: { 
-            family: 'Inter, sans-serif',
-            color: isDark ? '#ffffff' : '#1f2937'
-          }
-        }, { responsive: true });
-      }
-
-      // Create anomaly types chart
-      if (results.visualizations.anomaly_chart && document.getElementById('anomalyChart')) {
-        const anomalyData = JSON.parse(results.visualizations.anomaly_chart);
-        window.Plotly.newPlot('anomalyChart', anomalyData.data, {
-          ...anomalyData.layout,
-          paper_bgcolor: 'transparent',
-          plot_bgcolor: 'transparent',
-          font: { 
-            family: 'Inter, sans-serif',
-            color: isDark ? '#ffffff' : '#1f2937'
-          }
-        }, { responsive: true });
-      }
-    } catch (err) {
-      console.error('Error creating charts:', err);
-    }
-  };
 
   const handleDownload = async (filename) => {
     try {
@@ -289,21 +422,31 @@ const ResultsPage = ({ sessionData, onBackToHome, onVisualization, onAnalyzeNewD
             </p>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className={`${isDark ? 'bg-gradient-to-br from-blue-900/20 to-indigo-900/20 border border-blue-800/30' : 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200'} rounded-xl p-6`}>
-              <h3 className={`text-lg font-bold ${themeClasses.primaryText} mb-4`}>
-                Revenue Leakage Distribution
-              </h3>
-              <div id="leakageChart" className="h-80 w-full"></div>
+          {chartsLoading ? (
+            <div className="flex items-center justify-center h-80">
+              <LoadingSpinner message="Loading Charts..." size="medium" />
             </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className={`${isDark ? 'bg-gradient-to-br from-blue-900/20 to-indigo-900/20 border border-blue-800/30' : 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200'} rounded-xl p-6`}>
+                <h3 className={`text-lg font-bold ${themeClasses.primaryText} mb-4`}>
+                  {chartData?.charts[0]?.title || 'Revenue Leakage Distribution'}
+                </h3>
+                <div className="h-80 w-full">
+                  <canvas id="leakageChart"></canvas>
+                </div>
+              </div>
 
-            <div className={`${isDark ? 'bg-gradient-to-br from-orange-900/20 to-red-900/20 border border-orange-800/30' : 'bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200'} rounded-xl p-6`}>
-              <h3 className={`text-lg font-bold ${themeClasses.primaryText} mb-4`}>
-                Anomaly Types Distribution
-              </h3>
-              <div id="anomalyChart" className="h-80 w-full"></div>
+              <div className={`${isDark ? 'bg-gradient-to-br from-orange-900/20 to-red-900/20 border border-orange-800/30' : 'bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200'} rounded-xl p-6`}>
+                <h3 className={`text-lg font-bold ${themeClasses.primaryText} mb-4`}>
+                  {chartData?.charts[1]?.title || 'Anomaly Types Distribution'}
+                </h3>
+                <div className="h-80 w-full">
+                  <canvas id="anomalyChart"></canvas>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Report Generation */}
