@@ -106,21 +106,25 @@ const HomePage = ({ onDomainSelect }) => {
       id: 'supermarket',
       title: 'Retail & Supermarket',
       icon: ShoppingCart,
-      description: 'Detect pricing errors, inventory discrepancies, and promotional billing issues in retail environments.',
-      features: ['SKU Price Validation', 'Inventory Reconciliation', 'Promotional Discount Accuracy', 'Tax Calculation Verification'],
+      subtitle: 'ML-Powered Analysis',
+      description: 'Intelligent anomaly detection for retail pricing inconsistencies, tax calculation errors, and inventory discrepancies using advanced machine learning algorithms.',
+      features: ['Price Anomaly Detection', 'Tax Compliance Validation', 'Inventory-Price Analysis', 'Statistical Outlier Identification'],
       color: 'from-emerald-400 to-teal-500',
       lightColor: 'from-emerald-500 to-teal-600',
-      stats: { leakage: '$2.1M', accuracy: '99.2%', time: '15min' }
+      stats: { accuracy: '99.2%', time: '15min', impact: '$2.1M' },
+      buttonText: 'Analyze Retail & Supermarket'
     },
     {
       id: 'telecom',
       title: 'Telecommunications',
       icon: Phone,
-      description: 'Identify billing cycle errors, usage discrepancies, and contract mismatches in telecom services.',
-      features: ['Usage Pattern Analysis', 'Billing Cycle Validation', 'Roaming Charge Accuracy', 'Contract Compliance'],
+      subtitle: 'ML-Powered Analysis',
+      description: 'Advanced billing anomaly detection for telecom services including usage-billing correlation analysis, payment status validation, and service tier verification.',
+      features: ['Usage-Billing Correlation', 'Payment Status Analysis', 'Service Tier Validation', 'Billing Cycle Anomalies'],
       color: 'from-cyan-400 to-blue-500',
       lightColor: 'from-blue-500 to-indigo-600',
-      stats: { leakage: '$3.8M', accuracy: '98.7%', time: '12min' }
+      stats: { accuracy: '98.7%', time: '12min', impact: '$3.8M' },
+      buttonText: 'Analyze Telecommunications'
     }
   ];
 
@@ -413,10 +417,10 @@ const HomePage = ({ onDomainSelect }) => {
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className={`text-4xl font-bold ${themeClasses.primaryText} mb-4`}>
-              Choose Your Domain
+              Choose Analysis Domain
             </h2>
             <p className={`text-xl ${themeClasses.secondaryText} max-w-2xl mx-auto`}>
-              Specialized AI models trained for specific industry requirements and billing patterns.
+              Domain-specific machine learning models trained for specialized financial anomaly detection patterns.
             </p>
           </div>
           
@@ -438,7 +442,7 @@ const HomePage = ({ onDomainSelect }) => {
                     </div>
                     <div>
                       <h3 className={`text-2xl font-bold ${themeClasses.primaryText}`}>{domain.title}</h3>
-                      <p className={`text-sm ${themeClasses.mutedText}`}>Specialized Detection</p>
+                      <p className={`text-sm ${themeClasses.mutedText}`}>{domain.subtitle}</p>
                     </div>
                   </div>
                   
@@ -446,12 +450,16 @@ const HomePage = ({ onDomainSelect }) => {
                   
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className={`text-center p-3 ${isDark ? 'bg-gray-700/50 border border-gray-600' : 'bg-gray-50'} rounded-xl`}>
-                      <div className={`text-lg font-bold ${themeClasses.primaryText}`}>{domain.stats.leakage}</div>
-                      <div className={`text-xs ${themeClasses.mutedText}`}>Accuracy</div>
+                      <div className={`text-lg font-bold ${themeClasses.primaryText}`}>{domain.stats.accuracy}</div>
+                      <div className={`text-xs ${themeClasses.mutedText}`}>ML Accuracy</div>
                     </div>
                     <div className={`text-center p-3 ${isDark ? 'bg-gray-700/50 border border-gray-600' : 'bg-gray-50'} rounded-xl`}>
                       <div className={`text-lg font-bold ${themeClasses.primaryText}`}>{domain.stats.time}</div>
                       <div className={`text-xs ${themeClasses.mutedText}`}>Process Time</div>
+                    </div>
+                    <div className={`text-center p-3 ${isDark ? 'bg-gray-700/50 border border-gray-600' : 'bg-gray-50'} rounded-xl`}>
+                      <div className={`text-lg font-bold ${themeClasses.primaryText}`}>{domain.stats.impact}</div>
+                      <div className={`text-xs ${themeClasses.mutedText}`}>Revenue Impact</div>
                     </div>
                   </div>
                   
@@ -465,7 +473,7 @@ const HomePage = ({ onDomainSelect }) => {
                   </div>
                   
                   <button className={`w-full bg-gradient-to-r ${isDark ? domain.color : domain.lightColor} text-white py-4 rounded-xl font-semibold hover:shadow-lg transition-all transform hover:scale-105 flex items-center justify-center`}>
-                    Select {domain.title}
+                    {domain.buttonText}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </button>
                 </div>
@@ -597,10 +605,10 @@ const HomePage = ({ onDomainSelect }) => {
               onClick={() => document.getElementById('domains').scrollIntoView({ behavior: 'smooth' })}
               className={`${isDark ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-8 py-4 rounded-xl font-semibold hover:shadow-xl hover:shadow-cyan-500/25 transition-all transform hover:scale-105' : 'bg-white text-blue-600 px-8 py-4 rounded-xl font-semibold hover:shadow-xl transition-all transform hover:scale-105'}`}
             >
-              Start Free Trial
+              Start Your Analysis
             </button>
             <button className={`${isDark ? 'text-white border-2 border-cyan-400/50 bg-cyan-400/10 px-8 py-4 rounded-xl font-semibold hover:bg-cyan-400/20 hover:border-cyan-400 transition-all' : 'text-white border-2 border-white/30 px-8 py-4 rounded-xl font-semibold hover:bg-white/10 transition-all'}`}>
-              Schedule Demo
+              View Documentation
             </button>
           </div>
         </div>
