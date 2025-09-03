@@ -1,393 +1,346 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Minimize2, Maximize2, RotateCcw } from 'lucide-react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// --- CONFIGURATION ---
+
+// ⚠️ IMPORTANT SECURITY WARNING ⚠️
+// This approach is for development and prototyping ONLY. Exposing API keys in client-side
+// code is insecure. For production, you MUST use a backend proxy to make API calls securely.
+
+// Standardize on Vite's `import.meta.env` for all client-side environment variables.
+const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const openAIApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+
+// The comprehensive system context is crucial for high-quality AI responses.
+const systemContext = `You are a specialized AI assistant for "Revenue Leak Hunter AI", an advanced Business Intelligence platform for financial anomaly detection and revenue leakage prevention. Your sole purpose is to answer questions based on the context provided about this platform. You must ONLY answer questions related to revenue leakage detection, billing discrepancies, financial anomaly detection, and related BI topics. If asked about unrelated topics, you must politely decline and redirect the conversation back to the platform's purpose. Be professional, helpful, and concise, using formatting like lists or bold text to improve readability.
+
+PLATFORM OVERVIEW:
+Revenue Leak Hunter AI is a comprehensive BI platform that uses advanced AI/ML algorithms to detect financial anomalies and prevent revenue leakage across various industries including telecommunications, retail/supermarket, and subscription-based businesses.
+
+CORE CAPABILITIES:
+- Advanced anomaly detection using hybrid AI models (XGBoost classifier + Rules-based validation engine)
+- Real-time billing validation and revenue assurance
+- Automated report generation with AI-powered executive summaries
+- Enterprise-grade security, scalability, and performance optimization
+
+TECHNICAL ARCHITECTURE:
+- Frontend: React 18, Vite, Tailwind CSS, Chart.js
+- Backend: Python Flask, Pandas, NumPy, Scikit-learn
+- ML Models: XGBoost, Google Generative AI SDK (Gemini) for summaries
+- Infrastructure: Docker, Kubernetes
+
+ANOMALY DETECTION TYPES:
+Missing Charges, Incorrect Rates, Duplicate Entries, Usage Mismatches, Payment Issues, Post-deactivation Billing, Promotional Logic Errors.
+
+INDUSTRY SOLUTIONS:
+- Supermarket/Retail: POS transaction validation, promotional logic verification, tax compliance.
+- Telecommunications: Billing intelligence for complex rate plans, roaming charge validation.
+
+BUSINESS VALUE PROPOSITION:
+- Recover 2-8% of annual revenue.
+- Reduce manual audit costs by 70-90%.
+- Achieve positive ROI within 3-6 months.`;
+
+// The comprehensive keyword list provides a better gate for query relevance.
+const domainKeywords = [
+    'about', 'accuracy', 'actions', 'advantages', 'ai', 'algorithms', 'analysis', 'analytics', 'anomalies',
+    'anomaly', 'api', 'application', 'architecture', 'assurance', 'audit', 'automate', 'automation', 'backend',
+    'benefits', 'bi', 'billing', 'business', 'capabilities', 'case', 'cdr', 'charge', 'charges', 'compliance',
+    'confidence', 'cost', 'csv', 'customer', 'data', 'database', 'dashboard', 'detect', 'detection', 'discounts',
+    'discrepancies', 'docker', 'docx', 'download', 'duplicate', 'efficiency', 'enterprise-grade', 'error',
+    'errors', 'etl', 'explain', 'export', 'feature', 'features', 'financial', 'find', 'flask', 'frontend',
+    'functionality', 'gemini', 'generate', 'help', 'how', 'hunter', 'impact', 'implement', 'incorrect', 'industry',
+    'insights', 'integration', 'intelligence', 'interactive', 'interface', 'invoice', 'invoices', 'issues',
+    'kubernetes', 'leak', 'leakage', 'machine learning', 'manual', 'mismatch', 'ml', 'model', 'money', 'monitoring',
+    'openai', 'operations', 'optimize', 'pandas', 'pattern', 'payment', 'pdf', 'performance', 'platform', 'pos',
+    'prevent', 'prevention', 'price', 'pricing', 'process', 'product', 'profit', 'promotional', 'purpose', 'python',
+    'rate', 'react', 'real-time', 'reconciliation', 'recover', 'reduce', 'report', 'reporting', 'reports', 'results',
+    'retail', 'revenue', 'risk', 'roaming', 'roi', 'rules', 'scalability', 'score', 'scoring', 'security', 'service',
+    'solution', 'stack', 'subscription', 'summary', 'supermarket', 'support', 'system', 'tax', 'tech', 'technical',
+    'technology', 'telecom', 'telecommunications', 'tell me', 'transaction', 'transactions', 'trial', 'upload',
+    'usage', 'use case', 'user', 'validation', 'value', 'versus', 'visualization', 'what', 'why', 'workflow', 'xgboost'
+];
+
 
 const ChatBot = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "Hello! I'm your Revenue Leak Hunter AI assistant. I can help you understand revenue leakage detection, billing discrepancies, and how our AI system works. What would you like to know?",
-      sender: 'bot',
-      timestamp: new Date()
-    }
-  ]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef(null);
-
-  const startNewConversation = () => {
-    setMessages([
-      {
-        id: 1,
-        text: "Hello! I'm your Revenue Leak Hunter AI assistant. I can help you understand revenue leakage detection, billing discrepancies, and how our AI system works. What would you like to know?",
-        sender: 'bot',
-        timestamp: new Date()
-      }
+    const [isOpen, setIsOpen] = useState(false);
+    const [isMinimized, setIsMinimized] = useState(false);
+    const [messages, setMessages] = useState([
+        {
+            id: 1,
+            text: "Hello! I'm your Revenue Leak Hunter AI assistant. Ask me anything about our platform, billing analysis, or revenue leakage detection.",
+            sender: 'bot',
+            timestamp: new Date()
+        }
     ]);
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // System context for revenue leakage detection
-  const systemContext = `You are a specialized AI assistant for "Revenue Leak Hunter AI", an AI-powered system for revenue leakage detection. 
-
-  Your expertise covers:
-  - Revenue leakage detection and prevention
-  - Billing workflow analysis
-  - Service provisioning discrepancies
-  - Usage log analysis and contract verification
-  - Common billing errors like missing charges, incorrect rates, usage mismatches, duplicate entries
-  - AI-powered billing accuracy improvements
-  - Root cause analysis of billing discrepancies
-  - Automated investigation ticket creation
-  - Real-time revenue recovery processes
-
-  Always provide responses related to revenue leakage, billing accuracy, and how AI can help detect and prevent revenue loss. Be professional, helpful, and focus on practical solutions for businesses dealing with billing complexities.
-
-  If asked about unrelated topics, politely redirect the conversation back to revenue leakage detection and billing optimization.`;
-
-  // Fallback responses for when APIs are unavailable
-  const getFallbackResponse = (userMessage) => {
-    const message = userMessage.toLowerCase().trim();
+    const [inputMessage, setInputMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const messagesEndRef = useRef(null);
     
-    if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
-      return "Hello! I'm your Revenue Leak Hunter AI assistant. I specialize in helping businesses detect and prevent revenue leakage through AI-powered billing analysis. How can I assist you today?";
-    }
-    
-    if (message.includes('missing charge') || message.includes('missing billing') || message.includes('charge')) {
-      return "Missing charges are one of the most common types of revenue leakage! This typically happens when:\n\n• Services are provisioned but not billed\n• Usage data doesn't sync with billing systems\n• Manual billing entries are overlooked\n• System integration gaps occur\n\nOur AI detects these by comparing service provisioning logs with billing records in real-time. We can identify missing charges within minutes and automatically create investigation tickets. Would you like to know more about our detection algorithms?";
-    }
-    
-    if (message.includes('revenue leak') || message.includes('billing discrepancy') || message.includes('discrepancy')) {
-      return "Revenue leakage typically occurs through several billing discrepancies:\n\n• Missing charges for services rendered\n• Incorrect pricing or rate applications\n• Usage vs billing mismatches\n• Duplicate billing entries\n• Service provisioning errors\n• Contract term misapplications\n\nOur AI system monitors these areas 24/7, processing thousands of transactions to catch issues before they impact your revenue. What type of billing challenges are you currently facing?";
-    }
-    
-    if (message.includes('how') && (message.includes('detect') || message.includes('work') || message.includes('ai'))) {
-      return "Our Revenue Leak Hunter AI works through advanced pattern recognition:\n\n1. **Real-time Monitoring**: Continuously analyzes billing workflows and service provisioning\n2. **Data Cross-referencing**: Compares usage logs with contract terms and billing records\n3. **Pattern Detection**: Identifies anomalies using machine learning algorithms\n4. **Automated Alerts**: Generates instant notifications for potential revenue leaks\n5. **Investigation Automation**: Creates detailed tickets for manual review\n\nThe system learns from historical data to improve detection accuracy over time. Would you like details about any specific detection method?";
-    }
-    
-    if (message.includes('benefit') || message.includes('advantage') || message.includes('roi') || message.includes('value')) {
-      return "AI-powered revenue leak detection provides significant business value:\n\n**Financial Benefits:**\n• Recover 2-8% of annual revenue typically lost to billing errors\n• Reduce manual audit costs by 70-90%\n• Faster dispute resolution and customer satisfaction\n\n**Operational Benefits:**\n• Real-time detection vs quarterly manual audits\n• Automated investigation workflows\n• Detailed analytics and reporting\n\n**ROI Timeline:**\nMost clients see positive ROI within 3-6 months through recovered revenue and process improvements. What's your current annual billing volume?";
-    }
-    
-    if (message.includes('pricing') || message.includes('cost') || message.includes('price')) {
-      return "Our Revenue Leak Hunter AI pricing is based on your billing volume and complexity:\n\n• **Starter**: Up to $1M annual billing - Fixed monthly fee\n• **Professional**: $1M-$10M annual billing - Percentage of recovered revenue\n• **Enterprise**: $10M+ annual billing - Custom pricing with dedicated support\n\nWe also offer a free 30-day trial with full system access to demonstrate value before commitment. Would you like me to connect you with our sales team for a personalized quote?";
-    }
-    
-    if (message.includes('demo') || message.includes('trial') || message.includes('test')) {
-      return "Great! Our free 30-day trial includes:\n\n✅ Full access to AI detection algorithms\n✅ Real-time billing analysis of your data\n✅ Automated investigation ticket generation\n✅ Detailed revenue leakage reports\n✅ Integration with your existing billing systems\n✅ Dedicated onboarding support\n\nNo credit card required! The trial typically identifies revenue leaks worth 10-50x our monthly subscription cost. Ready to get started? I can help you begin the setup process.";
-    }
-    
-    if (message.includes('thank you') || message.includes('thanks')) {
-      return "You're very welcome! I'm here to help you optimize your revenue processes and eliminate billing leakage. Feel free to ask about any specific billing challenges, our AI detection methods, or implementation details!";
-    }
-    
-    if (message.includes('integration') || message.includes('setup') || message.includes('implement')) {
-      return "Revenue Leak Hunter AI integrates seamlessly with most billing systems:\n\n**Supported Integrations:**\n• Salesforce Billing\n• Oracle NetSuite\n• SAP Billing\n• Custom ERP systems via API\n• Zuora, Chargebee, Stripe\n• Database direct connections\n\n**Setup Process:**\n1. Data connection configuration (1-2 days)\n2. AI model training on your data (3-5 days)\n3. Testing and validation (2-3 days)\n4. Go-live with monitoring\n\nTotal implementation: 1-2 weeks. What billing system are you currently using?";
-    }
-    
-    // Default response for any other questions
-    return `I understand you're asking about "${userMessage}". While I can provide detailed information about revenue leakage detection, billing optimization, and our AI system's capabilities, I'm currently running with limited processing power.\n\nFor your specific question about missing charges, incorrect billing, or revenue recovery - our AI system excels at detecting these exact issues in real-time. Would you like me to explain how we identify and resolve billing discrepancies like the one you mentioned?`;
-  };
+    // Use a ref to hold the initialized Gemini chat model for conversation history.
+    const chatModelRef = useRef(null);
+    const genAIRef = useRef(null);
 
-  const callOpenAI = async (userMessage, conversationHistory) => {
-    // Get API key from environment variable
-    const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
-    
-    if (!apiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
+    // Initialize the Gemini chat model once.
+    useEffect(() => {
+        if (geminiApiKey && !chatModelRef.current) {
+            try {
+                genAIRef.current = new GoogleGenerativeAI(geminiApiKey);
+                const model = genAIRef.current.getGenerativeModel({
+                    model: "gemini-1.5-flash",
+                    systemInstruction: systemContext,
+                });
+                chatModelRef.current = model.startChat({ history: [] });
+                console.log("Gemini chat model initialized.");
+            } catch (error) {
+                console.error("Failed to initialize Gemini AI:", error);
+            }
+        }
+    }, []);
 
-    // Note: Direct API calls from browser will fail due to CORS
-    // This would need to be proxied through your backend
-    console.log('OpenAI API call would be made here, but requires backend proxy due to CORS');
-    throw new Error('API calls require backend proxy for CORS');
-  };
-
-  const callGemini = async (userMessage, conversationHistory) => {
-    const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-    
-    if (!apiKey) {
-      throw new Error('Gemini API key not configured');
-    }
-
-    // Note: Direct API calls from browser will fail due to CORS
-    // This would need to be proxied through your backend
-    console.log('Gemini API call would be made here, but requires backend proxy due to CORS');
-    throw new Error('API calls require backend proxy for CORS');
-  };
-
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
-
-    const userMessage = {
-      id: Date.now(),
-      text: inputMessage,
-      sender: 'user',
-      timestamp: new Date()
+    const startNewConversation = () => {
+        // Re-initialize Gemini chat history for a new conversation
+        if (genAIRef.current) {
+            const model = genAIRef.current.getGenerativeModel({
+                model: "gemini-1.5-flash",
+                systemInstruction: systemContext,
+            });
+            chatModelRef.current = model.startChat({ history: [] });
+        }
+        setMessages([
+            {
+                id: 1,
+                text: "Conversation reset. How can I assist you with revenue leakage detection?",
+                sender: 'bot',
+                timestamp: new Date()
+            }
+        ]);
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    const userInputText = inputMessage; // Store the input before clearing
-    setInputMessage('');
-    setIsLoading(true);
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
 
-    try {
-      const conversationHistory = messages.slice(-10); // Last 10 messages for context
-      let botResponse;
-      let apiCallSucceeded = false;
+    useEffect(scrollToBottom, [messages]);
 
-      // Check if API keys are available
-      const hasOpenAI = !!process.env.REACT_APP_OPENAI_API_KEY;
-      const hasGemini = !!process.env.REACT_APP_GEMINI_API_KEY;
+    const isRelevantQuestion = (userMessage) => {
+        const message = userMessage.toLowerCase();
+        return domainKeywords.some(keyword => message.includes(keyword));
+    };
 
-      // Only try API calls if we have keys and we're in a browser environment that supports fetch
-      if ((hasOpenAI || hasGemini) && typeof window !== 'undefined') {
-        try {
-          if (hasOpenAI) {
-            console.log('Trying OpenAI API...');
-            botResponse = await callOpenAI(userInputText, conversationHistory);
-            apiCallSucceeded = true;
-          } else if (hasGemini) {
-            console.log('Trying Gemini API...');
-            botResponse = await callGemini(userInputText, conversationHistory);
-            apiCallSucceeded = true;
-          }
-        } catch (apiError) {
-          console.log('Primary API failed:', apiError.message);
-          
-          // Try the other API if available
-          if (hasOpenAI && hasGemini) {
+    // A single function to try OpenAI (stateless) then Gemini (stateful).
+    const getAIResponse = async (userMessage) => {
+        // 1. Try OpenAI first (if key is available)
+        if (openAIApiKey) {
             try {
-              console.log('Trying fallback API...');
-              if (hasOpenAI) {
-                botResponse = await callGemini(userInputText, conversationHistory);
-              } else {
-                botResponse = await callOpenAI(userInputText, conversationHistory);
-              }
-              apiCallSucceeded = true;
-            } catch (fallbackError) {
-              console.log('Fallback API also failed:', fallbackError.message);
-              apiCallSucceeded = false;
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${openAIApiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            { role: 'system', content: systemContext },
+                            { role: 'user', content: userMessage }
+                        ],
+                        max_tokens: 500,
+                        temperature: 0.7,
+                    }),
+                });
+                if (!response.ok) throw new Error(`OpenAI API error: ${response.status}`);
+                const data = await response.json();
+                return data.choices[0].message.content;
+            } catch (error) {
+                console.warn("OpenAI API call failed, falling back to Gemini:", error.message);
             }
-          }
         }
-      }
 
-      // Use fallback responses if API calls failed or no keys available
-      if (!apiCallSucceeded) {
-        console.log('Using fallback response system');
-        botResponse = getFallbackResponse(userInputText);
-      }
+        // 2. Fallback to Gemini (if key and model are available)
+        if (chatModelRef.current) {
+            try {
+                const result = await chatModelRef.current.sendMessage(userMessage);
+                return result.response.text();
+            } catch (error) {
+                console.warn("Gemini API call failed:", error.message);
+            }
+        }
 
-      const botMessage = {
-        id: Date.now() + 1,
-        text: botResponse,
-        sender: 'bot',
-        timestamp: new Date()
-      };
+        // 3. Return null if all APIs fail or are not configured
+        return null;
+    };
 
-      setMessages(prev => [...prev, botMessage]);
-    } catch (error) {
-      console.error('Unexpected error in sendMessage:', error);
-      
-      // Final fallback - should rarely be reached
-      const fallbackResponse = getFallbackResponse(userInputText);
-      const errorMessage = {
-        id: Date.now() + 1,
-        text: fallbackResponse,
-        sender: 'bot',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // The comprehensive, intelligent fallback system ensures the bot is always helpful.
+    const generateIntelligentFallback = (userMessage) => {
+        const msg = userMessage.toLowerCase();
+        if (msg.includes('architecture') || msg.includes('tech stack') || msg.includes('how it works')) {
+            return "Our platform uses a hybrid AI architecture. The tech stack includes a **React 18** frontend, a **Python Flask** backend with **Pandas** for data processing, and an **XGBoost** model for anomaly detection, all deployed via **Docker and Kubernetes** for scalability.";
+        }
+        if (msg.includes('anomaly') || msg.includes('detect') || msg.includes('leakage')) {
+            return "We detect several key types of revenue leakage:\n• **Missing Charges:** Services rendered but not billed.\n• **Incorrect Rates:** Wrong pricing or tax calculations.\n• **Duplicate Entries:** Double-billing errors.\n• **Usage Mismatches:** Discrepancies between usage and billing.\n• **Post-deactivation Billing:** Charges after service cancellation.";
+        }
+        if (msg.includes('roi') || msg.includes('value') || msg.includes('benefit')) {
+            return "Clients typically recover **2-8% of annual revenue**, reduce manual audit costs by over **70%**, and achieve a positive **Return on Investment (ROI)** within 3-6 months by automating the detection of costly billing errors.";
+        }
+        // A generic but helpful default fallback
+        return `I can help with questions about our Revenue Leak Hunter AI platform. For example, you can ask about its technical architecture, the types of anomalies it detects, or its business value. What would you like to know?`;
+    };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
+    const sendMessage = async () => {
+        if (!inputMessage.trim() || isLoading) return;
 
-  const formatTime = (date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+        const userMessageText = inputMessage;
+        const userMessage = {
+            id: Date.now(),
+            text: userMessageText,
+            sender: 'user',
+            timestamp: new Date()
+        };
 
-  // Dark theme by default
-  const themeConfig = {
-    chatButton: 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-cyan-500/25',
-    windowBg: 'bg-gray-900 border border-gray-700',
-    headerBg: 'bg-gradient-to-r from-cyan-600/90 to-blue-600/90 backdrop-blur-md',
-    messagesBg: 'bg-gray-800/50',
-    userMessage: 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white',
-    botMessage: 'bg-gray-700/80 text-gray-100 border border-gray-600',
-    inputBg: 'bg-gray-800/80 backdrop-blur-sm border-t border-gray-700',
-    inputField: 'bg-gray-700/60 border-gray-600 text-gray-100 placeholder-gray-400 focus:border-cyan-500 focus:ring-cyan-500/30',
-    sendButton: 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-600',
-    headerButton: 'hover:bg-white/10 text-white/80 hover:text-white',
-    primaryText: 'text-gray-100',
-    secondaryText: 'text-gray-300',
-    mutedText: 'text-gray-400',
-    tooltip: 'bg-gray-800 text-gray-100 border border-gray-700',
-    loadingDots: 'bg-gray-500',
-    userAvatar: 'bg-gradient-to-r from-cyan-500 to-blue-500',
-    botAvatar: 'bg-gradient-to-r from-purple-500 to-cyan-500'
-  };
+        setMessages(prev => [...prev, userMessage]);
+        setInputMessage('');
+        setIsLoading(true);
 
-  return (
-    <>
-      {/* Chat Button */}
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className={`fixed bottom-6 right-6 ${themeConfig.chatButton} text-white rounded-full p-4 hover:shadow-xl transition-all duration-300 z-50 group opacity-90 hover:opacity-100`}
-        >
-          <MessageCircle size={24} />
-          <div className="absolute -top-2 -left-2 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-          <div className={`absolute bottom-full right-0 mb-2 px-3 py-1 ${themeConfig.tooltip} text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap`}>
-            Chat with Revenue Leak Hunter AI
-          </div>
-        </button>
-      )}
+        try {
+            let botResponseText;
 
-      {/* Chat Window */}
-      {isOpen && (
-        <div className={`fixed bottom-20 right-6 ${themeConfig.windowBg} rounded-2xl shadow-2xl z-50 transition-all duration-300 ${
-          isMinimized ? 'w-80 h-16' : 'w-96 max-h-[80vh] h-[600px]'
-        }`}>
-          {/* Header */}
-          <div className={`${themeConfig.headerBg} text-white p-4 rounded-t-2xl flex items-center justify-between`}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg">
-                <Bot size={18} />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm">Revenue Leak Hunter AI</h3>
-                <p className="text-xs opacity-90">AI Revenue Assistant</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={startNewConversation}
-                className={`p-2 ${themeConfig.headerButton} rounded-lg transition-all duration-200`}
-                title="Start New Conversation"
-              >
-                <RotateCcw size={16} />
-              </button>
-              <button
-                onClick={() => setIsMinimized(!isMinimized)}
-                className={`p-2 ${themeConfig.headerButton} rounded-lg transition-all duration-200`}
-                title={isMinimized ? "Expand" : "Minimize"}
-              >
-                {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
-              </button>
-              <button
-                onClick={() => setIsOpen(false)}
-                className={`p-2 ${themeConfig.headerButton} rounded-lg transition-all duration-200`}
-                title="Close Chat"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
+            if (!isRelevantQuestion(userMessageText)) {
+                botResponseText = "I am a specialized assistant for Revenue Leak Hunter AI and can only answer questions about revenue leakage, billing analysis, and our platform's features. Please ask a relevant question.";
+            } else {
+                const aiResponse = await getAIResponse(userMessageText);
 
-          {!isMinimized && (
-            <>
-              {/* Messages */}
-              <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${themeConfig.messagesBg}`} style={{ height: 'calc(100% - 140px)' }}>
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`flex items-start gap-3 max-w-[85%] ${
-                      message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'
-                    }`}>
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${
-                        message.sender === 'user' ? themeConfig.userAvatar : themeConfig.botAvatar
-                      }`}>
-                        {message.sender === 'user' ? <User size={16} className="text-white" /> : <Bot size={16} className="text-white" />}
-                      </div>
-                      <div className={`rounded-2xl p-4 backdrop-blur-sm ${
-                        message.sender === 'user'
-                          ? `${themeConfig.userMessage} rounded-br-lg`
-                          : `${themeConfig.botMessage} rounded-bl-lg`
-                      }`}>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
-                        <p className={`text-xs mt-2 opacity-70`}>
-                          {formatTime(message.timestamp)}
-                        </p>
-                      </div>
+                if (aiResponse) {
+                    botResponseText = aiResponse;
+                } else {
+                    console.log("All APIs failed or are not configured. Using intelligent fallback.");
+                    botResponseText = generateIntelligentFallback(userMessageText);
+                }
+            }
+            
+            const botMessage = {
+                id: Date.now() + 1,
+                text: botResponseText,
+                sender: 'bot',
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, botMessage]);
+
+        } catch (error) {
+            console.error("Error processing message:", error);
+            const errorMessage = {
+                id: Date.now() + 1,
+                text: "Sorry, I'm having a technical issue right now. Please try again in a moment.",
+                sender: 'bot',
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    };
+
+    const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    // UI/Theme configuration (no changes needed)
+    const themeConfig = {
+        chatButton: 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-cyan-500/25',
+        windowBg: 'bg-gray-900 border border-gray-700',
+        headerBg: 'bg-gradient-to-r from-cyan-600/90 to-blue-600/90 backdrop-blur-md',
+        messagesBg: 'bg-gray-800/50',
+        userMessage: 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white',
+        botMessage: 'bg-gray-700/80 text-gray-100 border border-gray-600',
+        inputBg: 'bg-gray-800/80 backdrop-blur-sm border-t border-gray-700',
+        inputField: 'bg-gray-700/60 border-gray-600 text-gray-100 placeholder-gray-400 focus:border-cyan-500 focus:ring-cyan-500/30',
+        sendButton: 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-600 disabled:to-gray-600',
+        headerButton: 'hover:bg-white/10 text-white/80 hover:text-white',
+        tooltip: 'bg-gray-800 text-gray-100 border border-gray-700',
+        loadingDots: 'bg-gray-500',
+        userAvatar: 'bg-gradient-to-r from-cyan-500 to-blue-500',
+        botAvatar: 'bg-gradient-to-r from-purple-500 to-cyan-500'
+    };
+
+    return (
+        <>
+            {!isOpen && (
+                <button onClick={() => setIsOpen(true)} className={`fixed bottom-6 right-6 ${themeConfig.chatButton} text-white rounded-full p-4 hover:shadow-xl transition-all duration-300 z-50 group opacity-90 hover:opacity-100`}>
+                    <MessageCircle size={24} />
+                    <div className="absolute -top-2 -left-2 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                    <div className={`absolute bottom-full right-0 mb-2 px-3 py-1 ${themeConfig.tooltip} text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap`}>
+                        Chat with an AI Expert
                     </div>
-                  </div>
-                ))}
-                
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="flex items-start gap-3 max-w-[85%]">
-                      <div className={`w-8 h-8 rounded-xl ${themeConfig.botAvatar} flex items-center justify-center shadow-sm`}>
-                        <Bot size={16} className="text-white" />
-                      </div>
-                      <div className={`${themeConfig.botMessage} rounded-2xl rounded-bl-lg p-4`}>
-                        <div className="flex space-x-2">
-                          <div className={`w-2 h-2 ${themeConfig.loadingDots} rounded-full animate-bounce`}></div>
-                          <div className={`w-2 h-2 ${themeConfig.loadingDots} rounded-full animate-bounce`} style={{animationDelay: '0.1s'}}></div>
-                          <div className={`w-2 h-2 ${themeConfig.loadingDots} rounded-full animate-bounce`} style={{animationDelay: '0.2s'}}></div>
+                </button>
+            )}
+
+            {isOpen && (
+                <div className={`fixed bottom-20 right-6 ${themeConfig.windowBg} rounded-2xl shadow-2xl z-50 transition-all duration-300 flex flex-col ${isMinimized ? 'w-80 h-16' : 'w-96 max-h-[80vh] h-[600px]'}`}>
+                    <div className={`${themeConfig.headerBg} text-white p-4 rounded-t-2xl flex items-center justify-between flex-shrink-0`}>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg"><Bot size={18} /></div>
+                            <div>
+                                <h3 className="font-bold text-sm">Revenue Leak Hunter AI</h3>
+                                <p className="text-xs opacity-90">AI Revenue Assistant</p>
+                            </div>
                         </div>
-                      </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={startNewConversation} className={`p-2 ${themeConfig.headerButton} rounded-lg`} title="New Conversation"><RotateCcw size={16} /></button>
+                            <button onClick={() => setIsMinimized(!isMinimized)} className={`p-2 ${themeConfig.headerButton} rounded-lg`} title={isMinimized ? "Expand" : "Minimize"}>{isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}</button>
+                            <button onClick={() => setIsOpen(false)} className={`p-2 ${themeConfig.headerButton} rounded-lg`} title="Close Chat"><X size={16} /></button>
+                        </div>
                     </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
 
-              {/* Input */}
-              <div className={`p-4 ${themeConfig.inputBg}`}>
-                <div className="flex items-end gap-3">
-                  <div className="flex-1">
-                    <textarea
-                      value={inputMessage}
-                      onChange={(e) => setInputMessage(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder="Ask about revenue leakage detection..."
-                      className={`w-full px-4 py-3 ${themeConfig.inputField} rounded-xl focus:outline-none focus:ring-2 resize-none transition-all duration-200`}
-                      rows="2"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <button
-                    onClick={sendMessage}
-                    disabled={!inputMessage.trim() || isLoading}
-                    className={`${themeConfig.sendButton} text-white p-3 rounded-xl transition-all duration-200 disabled:cursor-not-allowed shadow-lg hover:shadow-xl`}
-                  >
-                    <Send size={20} />
-                  </button>
+                    {!isMinimized && (
+                        <>
+                            <div className={`flex-grow overflow-y-auto p-4 space-y-4 ${themeConfig.messagesBg}`}>
+                                {messages.map((message) => (
+                                    <div key={message.id} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                        <div className={`flex items-start gap-3 max-w-[85%] ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${message.sender === 'user' ? themeConfig.userAvatar : themeConfig.botAvatar}`}>{message.sender === 'user' ? <User size={16} className="text-white" /> : <Bot size={16} className="text-white" />}</div>
+                                            <div className={`rounded-2xl p-4 backdrop-blur-sm ${message.sender === 'user' ? `${themeConfig.userMessage} rounded-br-lg` : `${themeConfig.botMessage} rounded-bl-lg`}`}>
+                                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
+                                                <p className={`text-xs mt-2 opacity-70`}>{formatTime(message.timestamp)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {isLoading && (
+                                    <div className="flex justify-start">
+                                        <div className="flex items-start gap-3 max-w-[85%]">
+                                            <div className={`w-8 h-8 rounded-xl ${themeConfig.botAvatar} flex items-center justify-center shadow-sm`}><Bot size={16} className="text-white" /></div>
+                                            <div className={`${themeConfig.botMessage} rounded-2xl rounded-bl-lg p-4`}>
+                                                <div className="flex space-x-2">
+                                                    <div className={`w-2 h-2 ${themeConfig.loadingDots} rounded-full animate-bounce`}></div>
+                                                    <div className={`w-2 h-2 ${themeConfig.loadingDots} rounded-full animate-bounce`} style={{animationDelay: '0.1s'}}></div>
+                                                    <div className={`w-2 h-2 ${themeConfig.loadingDots} rounded-full animate-bounce`} style={{animationDelay: '0.2s'}}></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                <div ref={messagesEndRef} />
+                            </div>
+                            <div className={`p-4 ${themeConfig.inputBg} flex-shrink-0`}>
+                                <div className="flex items-end gap-3">
+                                    <div className="flex-1">
+                                        <textarea value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} onKeyPress={handleKeyPress} placeholder="Ask about revenue leakage..." className={`w-full px-4 py-3 ${themeConfig.inputField} rounded-xl focus:outline-none focus:ring-2 resize-none`} rows="2" disabled={isLoading} />
+                                    </div>
+                                    <button onClick={sendMessage} disabled={!inputMessage.trim() || isLoading} className={`${themeConfig.sendButton} text-white p-3 rounded-xl transition-all duration-200 disabled:cursor-not-allowed`}><Send size={20} /></button>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
-                <div className="flex items-center justify-between mt-3">
-                  <p className={`text-xs ${themeConfig.mutedText}`}>
-                    Powered by Revenue Leak Hunter AI
-                  </p>
-                  <p className={`text-xs ${themeConfig.mutedText}`}>
-                    Press Enter to send
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </>
-  );
+            )}
+        </>
+    );
 };
 
 export default ChatBot;
