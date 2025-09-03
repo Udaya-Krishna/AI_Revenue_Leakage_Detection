@@ -652,8 +652,13 @@ def create_word_document(domain, leakage_data, total_leakage_inr, leakage_percen
         ai_recommendations = generate_ai_recommendations(domain, leakage_data, total_leakage_inr, leakage_percentage)
         
         if ai_recommendations:
-            for i, rec in enumerate(ai_recommendations, 1):
-                doc.add_paragraph(f'{i}. {rec}', style='List Number')
+            for rec in ai_recommendations:
+                if rec.startswith("Based on the provided data"):
+                    doc.add_paragraph(rec)
+                    continue
+                cleaned=rec.lstrip('0123456789. ').strip()
+                doc.add_paragraph(cleaned, style='List Number')
+            
             doc.add_paragraph('')
             doc.add_paragraph('💡 These AI-generated recommendations are based on analysis of your specific data patterns and industry best practices.')
         else:
