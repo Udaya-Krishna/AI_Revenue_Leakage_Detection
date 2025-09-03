@@ -28,6 +28,8 @@ import {
 import { useGlobalTheme } from "./GlobalThemeContext";
 
 import DevelopersSection from "./Developers/Developers";
+import VideoPlayer from './VideoPlayer';
+import FlowchartViewer from './FlowchartViewer';
 
 import ChatBot from './ChatBot/ChatBot';
 
@@ -54,6 +56,8 @@ const HomePage = ({ onDomainSelect }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeTab, setActiveTab] = useState('features');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [showFlowchartViewer, setShowFlowchartViewer] = useState(false);
   const [counters, setCounters] = useState({
     revenue: 0,
     issues: 0,
@@ -344,7 +348,10 @@ const HomePage = ({ onDomainSelect }) => {
                 Start Detection
                 <ArrowRight className="w-5 h-5 ml-2" />
               </button>
-              <button className={`flex items-center ${themeClasses.secondaryText} hover:${isDark ? 'text-cyan-400' : 'text-blue-600'} transition-colors`}>
+              <button 
+                className={`flex items-center ${themeClasses.secondaryText} hover:${isDark ? 'text-cyan-400' : 'text-blue-600'} transition-colors`}
+                onClick={() => setShowVideoPlayer(true)}
+              >
                 <div className={`w-12 h-12 ${isDark ? 'bg-gray-800/60 backdrop-blur-sm shadow-lg hover:shadow-xl hover:bg-gray-700/60 border border-gray-700' : 'bg-white shadow-lg hover:shadow-xl'} rounded-full flex items-center justify-center mr-3 transition-all`}>
                   <Play className={`w-5 h-5 ${isDark ? 'text-cyan-400' : 'text-blue-600'}`} />
                 </div>
@@ -607,7 +614,10 @@ const HomePage = ({ onDomainSelect }) => {
             >
               Start Your Analysis
             </button>
-            <button className={`${isDark ? 'text-white border-2 border-cyan-400/50 bg-cyan-400/10 px-8 py-4 rounded-xl font-semibold hover:bg-cyan-400/20 hover:border-cyan-400 transition-all' : 'text-white border-2 border-white/30 px-8 py-4 rounded-xl font-semibold hover:bg-white/10 transition-all'}`}>
+            <button 
+              className={`${isDark ? 'text-white border-2 border-cyan-400/50 bg-cyan-400/10 px-8 py-4 rounded-xl font-semibold hover:bg-cyan-400/20 hover:border-cyan-400 transition-all' : 'text-white border-2 border-white/30 px-8 py-4 rounded-xl font-semibold hover:bg-white/10 transition-all'}`}
+              onClick={() => setShowFlowchartViewer(true)}
+            >
               View Documentation
             </button>
           </div>
@@ -663,7 +673,16 @@ const HomePage = ({ onDomainSelect }) => {
           </div>
         </div>
       </footer>
+      
       <ChatBot />
+      <VideoPlayer 
+        isOpen={showVideoPlayer} 
+        onClose={() => setShowVideoPlayer(false)}
+      />
+      <FlowchartViewer 
+        isOpen={showFlowchartViewer} 
+        onClose={() => setShowFlowchartViewer(false)} 
+      />
     </div>
   );
 };
