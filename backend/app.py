@@ -652,8 +652,13 @@ def create_word_document(domain, leakage_data, total_leakage_inr, leakage_percen
         ai_recommendations = generate_ai_recommendations(domain, leakage_data, total_leakage_inr, leakage_percentage)
         
         if ai_recommendations:
-            for i, rec in enumerate(ai_recommendations, 1):
-                doc.add_paragraph(f'{i}. {rec}', style='List Number')
+            for rec in ai_recommendations:
+                if rec.startswith("Based on the provided data"):
+                    doc.add_paragraph(rec)
+                    continue
+                cleaned=rec.lstrip('0123456789. ').strip()
+                doc.add_paragraph(cleaned, style='List Number')
+            
             doc.add_paragraph('')
             doc.add_paragraph('💡 These AI-generated recommendations are based on analysis of your specific data patterns and industry best practices.')
         else:
@@ -1921,18 +1926,64 @@ def generate_detailed_report(session_id):
             return jsonify({"error": "No processed data found for this session"}), 400
             
         # Load the processed data
-        leakage_data = pd.read_csv(session_data['processed_data_path'])
+        processed_data = pd.read_csv(session_data['processed_data_path'])
         
-        # Calculate total leakage
-        leakage_column = 'Balance_Amount' if 'Balance_Amount' in leakage_data.columns else 'Balance_amount'
-        total_leakage = leakage_data[leakage_column].sum() * 87.79  # Convert to INR
+        # Get domain from session data
+        domain = session_data.get('domain', 'supermarket')
+        
+        # Filter for leakage/anomaly data based on domain
+        if domain == 'supermarket':
+            # Filter for anomalies in supermarket data
+            leakage_data = processed_data[processed_data['Leakage_Flag_Pred'] == 'Anomaly'].copy()
+            leakage_column = 'Balance_Amount'
+        else:  # telecom
+            # Filter for leakages in telecom data
+            leakage_data = processed_data[processed_data['Leakage'] == 'Yes'].copy()
+            leakage_column = 'Balance_amount'
+        
+        # Calculate total leakage amount
+        if leakage_column in leakage_data.columns:
+            total_leakage = leakage_data[leakage_column].sum() * 87.79  # Convert to INR
+        else:
+            total_leakage = 0
+        
+        # Calculate total revenue from all records in the dataset
+        if leakage_column in processed_data.columns:
+            total_revenue = processed_data[leakage_column].sum() * 87.79  # Convert to INR
+        else:
+            # Fallback: try other amount columns
+            amount_columns = ['Billed_Amount', 'Paid_Amount', 'Billed_amount', 'Paid_amount']
+            total_revenue = 0
+            for col in amount_columns:
+                if col in processed_data.columns:
+                    total_revenue = processed_data[col].sum() * 87.79
+                    break
         
         # Calculate leakage percentage
-        total_revenue = session_data.get('total_revenue', 0)
-        leakage_percentage = (total_leakage / total_revenue * 100) if total_revenue > 0 else 0
+        if total_revenue > 0:
+            leakage_percentage = (total_leakage / total_revenue) * 100
+        else:
+            # Alternative calculation: percentage of records with leakage
+            total_records = len(processed_data)
+            leakage_records = len(leakage_data)
+            leakage_percentage = (leakage_records / total_records) * 100 if total_records > 0 else 0
         
-        # Get domain from session data or infer from columns
-        domain = session_data.get('domain', 'supermarket' if 'Store_Branch' in leakage_data.columns else 'telecom')
+        # If we still have no leakage data, use the session summary
+        if leakage_percentage == 0 and 'summary' in session_data:
+            summary = session_data['summary']
+            if 'anomaly_percentage' in summary:
+                leakage_percentage = summary['anomaly_percentage']
+            elif 'total_records' in summary and 'anomaly_count' in summary:
+                total_records = summary['total_records']
+                anomaly_count = summary['anomaly_count']
+                leakage_percentage = (anomaly_count / total_records) * 100 if total_records > 0 else 0
+        
+        print(f"Debug - Domain: {domain}")
+        print(f"Debug - Total records: {len(processed_data)}")
+        print(f"Debug - Leakage records: {len(leakage_data)}")
+        print(f"Debug - Total leakage amount: ₹{total_leakage:,.2f}")
+        print(f"Debug - Total revenue: ₹{total_revenue:,.2f}")
+        print(f"Debug - Leakage percentage: {leakage_percentage:.2f}%")
         
         # Generate detailed report using Ollama
         detailed_report = generate_ollama_report(domain, leakage_data, total_leakage, leakage_percentage)
@@ -1944,16 +1995,25 @@ def generate_detailed_report(session_id):
         title = doc.add_heading(f'{domain.capitalize()} Detailed Revenue Leakage Report', level=1)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         
-        # Add date
+        # Add date and summary
         doc.add_paragraph(f"Report generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         doc.add_paragraph()
         
+        # Add executive summary
+        doc.add_heading('Executive Summary', level=2)
+        doc.add_paragraph(f"Total Revenue Leakage: ₹{total_leakage:,.2f}")
+        doc.add_paragraph(f"Leakage Percentage: {leakage_percentage:.2f}%")
+        doc.add_paragraph(f"Total Records Analyzed: {len(processed_data):,}")
+        doc.add_paragraph(f"Records with Leakage: {len(leakage_data):,}")
+        doc.add_paragraph()
+        
         # Add detailed report content
+        doc.add_heading('Detailed Analysis', level=2)
         for line in detailed_report.split('\n'):
             if line.strip() == '':
                 doc.add_paragraph()
-            elif line.strip().endswith(':'):  # Likely a heading
-                doc.add_heading(line.strip(' :'), level=2)
+            elif line.strip().endswith(':') and len(line.strip()) < 50:  # Likely a heading
+                doc.add_heading(line.strip(' :'), level=3)
             else:
                 doc.add_paragraph(line)
         
@@ -1976,6 +2036,12 @@ def generate_detailed_report(session_id):
         
         # Update session with detailed report info
         session_data['detailed_report_file'] = filename
+        session_data['detailed_report_metrics'] = {
+            'total_leakage': total_leakage,
+            'leakage_percentage': leakage_percentage,
+            'total_records': len(processed_data),
+            'leakage_records': len(leakage_data)
+        }
         
         # Update the session in results_store
         results_store[session_id] = session_data
@@ -1991,6 +2057,9 @@ def generate_detailed_report(session_id):
         return response
         
     except Exception as e:
+        print(f"Error in generate_detailed_report: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": f"Error generating detailed report: {str(e)}"}), 500
 
 if __name__ == '__main__':
