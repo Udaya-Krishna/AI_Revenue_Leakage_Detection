@@ -15,7 +15,7 @@ const VideoPlayer = ({ isOpen, onClose, videoUrl }) => {
   const playerRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
 
-  const googleDriveVideoUrl = "https://drive.google.com/file/d/1KOkgTVcSYw-GyOPXEPqtG6nFqFLKxOXC/preview";
+  const googleDriveVideoUrl = "https://drive.google.com/file/d/1tClOEBRZEKRP5FPTrPa8ozu2gjxx9fJz/preview";
 
   useEffect(() => {
     if (isOpen) {
@@ -208,7 +208,7 @@ const VideoPlayer = ({ isOpen, onClose, videoUrl }) => {
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center space-x-3 text-xs">
               <span className={`${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                Duration: {duration > 0 ? formatTime(duration) : '1:42'}
+                Duration: {duration > 0 ? formatTime(duration) : '4:18'}
               </span>
               <span className={`${isDark ? 'text-gray-400' : 'text-gray-500'}`}>•</span>
               <span className={`${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Product Walkthrough</span>
